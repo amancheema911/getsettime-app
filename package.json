@@ -16,5 +16,10 @@
     "start:workspace": "yarn workspace workspace-app start",
     "start:superadmin": "yarn workspace superadmin-app start",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx"
+  },
+  "dependencies": {
+    "next": "^16.0.10",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
   }
 }

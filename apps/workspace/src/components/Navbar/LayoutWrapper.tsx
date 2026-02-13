@@ -6,7 +6,12 @@ import Sidebar from "../Sidebar/Sidebar";
 import Topbar from "./Topbar";
 
 // Public routes that don't require authentication or sidebar
-const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/login", "/auth/register", "/auth/forgot-password"];
+const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/login", "/auth/register", "/auth/forgot-password", "/auth/callback", "/invite-accept"];
+
+// Check if route matches public pattern (e.g., /book/*)
+function isPublicRoutePattern(pathname: string): boolean {
+  return pathname.startsWith('/book/');
+}
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -37,7 +42,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Check if current route is public
-  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
+  const isPublicRoute = PUBLIC_ROUTES.includes(pathname) || isPublicRoutePattern(pathname);
 
   // For public routes, just render children without authentication check
   if (isPublicRoute) {

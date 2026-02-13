@@ -16,9 +16,66 @@ interface PaginationInfo {
   totalPages: number;
 }
 
+interface EventType {
+  id: string;
+  title: string;
+}
+
+interface ServiceProvider {
+  id: string;
+  email: string;
+  raw_user_meta_data?: {
+    full_name?: string;
+    name?: string;
+  };
+}
+
+interface TeamMember {
+  id: string;
+  email: string;
+  name?: string;
+  role?: string;
+  raw_user_meta_data?: {
+    full_name?: string;
+    name?: string;
+  };
+}
+
+interface Service {
+  id: string;
+  name: string;
+}
+
+interface CustomField {
+  id: string;
+  label: string;
+  field_type: 'text' | 'textarea' | 'number' | 'email' | 'tel' | 'url';
+  required: boolean;
+  placeholder?: string;
+}
+
+interface IntakeFormSettings {
+  name: boolean;
+  email: boolean;
+  phone: boolean;
+  services: {
+    enabled: boolean;
+    allowed_service_ids: string[];
+  };
+  additional_description: boolean;
+  custom_fields: CustomField[];
+}
+
 const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
   const [bookings, setBookings] = useState<Booking[]>(initialBookings || []);
   const [filter, setFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [eventTypeFilter, setEventTypeFilter] = useState('');
+  const [eventTypes, setEventTypes] = useState<EventType[]>([]);
+  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [intakeFormSettings, setIntakeFormSettings] = useState<IntakeFormSettings | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
@@ -36,7 +93,7 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
   const isInitialMount = useRef(true);
   const filterChangingRef = useRef(false);
 
-  const fetchBookings = async (page: number, search: string) => {
+  const fetchBookings = async (page: number, search: string, date: string, status: string, eventTypeId: string) => {
     try {
       setLoading(true);
       const { supabase } = await import('@/lib/supabaseClient');
@@ -55,6 +112,18 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
         params.append('search', search.trim());
       }
 
+      if (date.trim()) {
+        params.append('date', date.trim());
+      }
+
+      if (status.trim()) {
+        params.append('status', status.trim());
+      }
+
+      if (eventTypeId.trim()) {
+        params.append('event_type_id', eventTypeId.trim());
+      }
+
       const response = await fetch(`/api/bookings?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -63,6 +132,8 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
 
       if (response.ok) {
         const result = await response.json();
+        console.log("Bookings");
+        console.log(result.data);
         setBookings(result.data || []);
         if (result.pagination) {
           setPagination(result.pagination);
@@ -75,30 +146,156 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
     }
   };
 
+  // Fetch event types, services, and intake form settings on mount
+  useEffect(() => {
+    const fetchEventTypes = async () => {
+      try {
+        const { supabase } = await import('@/lib/supabaseClient');
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.access_token) {
+          return;
+        }
+
+        const response = await fetch('/api/event-types', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setEventTypes(result.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching event types:', error);
+      }
+    };
+
+    const fetchServiceProviders = async () => {
+      try {
+        const { supabase } = await import('@/lib/supabaseClient');
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.access_token) {
+          return;
+        }
+
+        const response = await fetch('/api/team-members', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.teamMembers) {
+            const members: TeamMember[] = result.teamMembers;
+            const providers = members
+              .filter((member) => member.role === 'service_provider')
+              .map((member) => ({
+                id: member.id,
+                email: member.email,
+                raw_user_meta_data: { name: member.name, full_name: member.raw_user_meta_data?.full_name },
+              }));
+            setServiceProviders(providers);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching service providers:', error);
+      }
+    };
+
+    const fetchServices = async () => {
+      try {
+        const { supabase } = await import('@/lib/supabaseClient');
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.access_token) {
+          return;
+        }
+
+        const response = await fetch('/api/services', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setServices(result.services || []);
+        }
+      } catch (error) {
+        console.error('Error fetching services:', error);
+      }
+    };
+
+    const fetchIntakeFormSettings = async () => {
+      try {
+        const { supabase } = await import('@/lib/supabaseClient');
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.access_token) {
+          return;
+        }
+
+        const response = await fetch('/api/settings', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.settings?.intake_form) {
+            setIntakeFormSettings({
+              name: result.settings.intake_form.name ?? true,
+              email: result.settings.intake_form.email ?? true,
+              phone: result.settings.intake_form.phone ?? false,
+              services: result.settings.intake_form.services ?? {
+                enabled: false,
+                allowed_service_ids: [],
+              },
+              additional_description: result.settings.intake_form.additional_description ?? false,
+              custom_fields: result.settings.intake_form.custom_fields ?? [],
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching intake form settings:', error);
+      }
+    };
+
+    fetchEventTypes();
+    fetchServiceProviders();
+    fetchServices();
+    fetchIntakeFormSettings();
+  }, []);
+
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
-      fetchBookings(1, '');
+      fetchBookings(1, '', '', '', '');
       return;
     }
 
     const debounceTimer = setTimeout(() => {
       filterChangingRef.current = true;
       setCurrentPage(1);
-      fetchBookings(1, filter);
+      fetchBookings(1, filter, dateFilter, statusFilter, eventTypeFilter);
       setTimeout(() => {
         filterChangingRef.current = false;
       }, 0);
     }, 300);
 
     return () => clearTimeout(debounceTimer);
-  }, [filter]);
+  }, [filter, dateFilter, statusFilter, eventTypeFilter]);
 
   useEffect(() => {
     if (!isInitialMount.current && currentPage > 0 && !filterChangingRef.current) {
-      fetchBookings(currentPage, filter);
+      fetchBookings(currentPage, filter, dateFilter, statusFilter, eventTypeFilter);
     }
-  }, [currentPage, filter]);
+  }, [currentPage]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this booking?')) {
@@ -122,7 +319,7 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
       });
 
       if (response.ok) {
-        await fetchBookings(currentPage, filter);
+        await fetchBookings(currentPage, filter, dateFilter, statusFilter, eventTypeFilter);
       } else {
         const errorData = await response.json();
         alert(errorData.error || 'Failed to delete booking');
@@ -146,7 +343,7 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
   const handleFormSave = async () => {
     setShowForm(false);
     setEditingBooking(null);
-    await fetchBookings(currentPage, filter);
+    await fetchBookings(currentPage, filter, dateFilter, statusFilter, eventTypeFilter);
   };
 
   const handleFormCancel = () => {
@@ -157,7 +354,7 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
 
   const handleMultiStepFormSave = async () => {
     setShowMultiStepForm(false);
-    await fetchBookings(currentPage, filter);
+    await fetchBookings(currentPage, filter, dateFilter, statusFilter, eventTypeFilter);
   };
 
   const handleViewBooking = (booking: Booking) => {
@@ -179,18 +376,42 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
   };
 
 
+  const getServiceProviderName = (serviceProviderId: string | null): string => {
+    if (!serviceProviderId) return 'N/A';
+    const provider = serviceProviders.find((sp) => sp.id === serviceProviderId);
+    return provider?.raw_user_meta_data?.full_name || provider?.raw_user_meta_data?.name || provider?.email || 'N/A';
+  };
+
   // Transform bookings for display
   const displayBookings = bookings.map((booking) => ({
     id: booking.id,
     name: booking.invitee_name || 'N/A',
+    notes: booking.metadata?.['notes'] || 'N/A',
     date: formatDate(booking.start_at),
     time: formatTime(booking.start_at),
-    type: booking.event_type_id || 'N/A',
+    type: booking.event_types?.title || 'N/A',
     status: booking.status || 'Pending',
+    service_provider_name: getServiceProviderName(booking.service_provider_id),
   }));
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilter(e.target.value);
+  };
+
+  const handleDateFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDateFilter(e.target.value);
+  };
+
+  const handleClearDateFilter = () => {
+    setDateFilter('');
+  };
+
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatusFilter(e.target.value);
+  };
+
+  const handleEventTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setEventTypeFilter(e.target.value);
   };
 
   const handlePageChange = (page: number) => {
@@ -211,9 +432,9 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
       </header>
 
       {showMultiStepForm && (
-        <div className="fixed inset-0 z-999 flex items-center justify-center overflow-y-auto bg-white m-0 bg-opacity-50" onClick={handleFormCancel}>
-          <div className="w-full px-4 mx-4 h-auto relative" onClick={(e) => e.stopPropagation()}>
-            <button onClick={handleFormCancel} className="cursor-pointer fixed top-4 right-4 p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors" aria-label="Close modal">
+        <div className="fixed inset-0 z-999 overflow-y-auto bg-gray-50 m-0 bg-opacity-50" onClick={handleFormCancel}>
+          <div className="w-full mx-auto h-full relative" onClick={(e) => e.stopPropagation()}>
+            <button onClick={handleFormCancel} className="cursor-pointer fixed z-10 top-2 right-2 text-slate-500 hover:text-slate-700  rounded-full transition-colors" aria-label="Close modal">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -223,16 +444,109 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
         </div>
       )}
 
-      {/* Search Filter */}
-      <div className="w-full md:w-1/2 mt-4">
-        <input
-          type="text"
-          placeholder="Search bookings..."
-          value={filter}
-          onChange={handleFilterChange}
-          className="w-full px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          aria-label="Filter bookings"
-        />
+      {/* Search and Filters */}
+      <div className="flex flex-col gap-4 mt-4">
+        {/* First Row: Search and Date */}
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Search Filter */}
+          <div className="w-full md:w-1/2">
+            <label htmlFor="search-filter" className="block text-sm font-medium text-slate-700 mb-2">
+              Search
+            </label>
+            <input
+              id="search-filter"
+              type="text"
+              placeholder="Search bookings..."
+              value={filter}
+              onChange={handleFilterChange}
+              className="w-full px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              aria-label="Filter bookings"
+            />
+          </div>
+
+          {/* Date Filter */}
+          <div className="w-full md:w-1/2">
+            <label htmlFor="date-filter" className="block text-sm font-medium text-slate-700 mb-2">
+              Filter by Date
+            </label>
+            <div className="relative">
+              {/* Calendar Icon */}
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              
+              <input
+                id="date-filter"
+                type="date"
+                value={dateFilter}
+                onChange={handleDateFilterChange}
+                className="w-full pl-10 pr-10 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                aria-label="Filter by date"
+              />
+              
+              {/* Clear Button */}
+              {dateFilter && (
+                <button
+                  onClick={handleClearDateFilter}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  aria-label="Clear date filter"
+                  title="Clear date filter"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Second Row: Status and Event Type */}
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Status Filter */}
+          <div className="w-full md:w-1/2">
+            <label htmlFor="status-filter" className="block text-sm font-medium text-slate-700 mb-2">
+              Filter by Status
+            </label>
+            <select
+              id="status-filter"
+              value={statusFilter}
+              onChange={handleStatusFilterChange}
+              className="w-full px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              aria-label="Filter by status"
+            >
+              <option value="">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="completed">Completed</option>
+              <option value="reschedule">Reschedule</option>
+            </select>
+          </div>
+
+          {/* Event Type Filter */}
+          <div className="w-full md:w-1/2">
+            <label htmlFor="event-type-filter" className="block text-sm font-medium text-slate-700 mb-2">
+              Filter by Event Type
+            </label>
+            <select
+              id="event-type-filter"
+              value={eventTypeFilter}
+              onChange={handleEventTypeFilterChange}
+              className="w-full px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              aria-label="Filter by event type"
+            >
+              <option value="">All Event Types</option>
+              {eventTypes.map((eventType) => (
+                <option key={eventType.id} value={eventType.id}>
+                  {eventType.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Booking Form */}
@@ -263,7 +577,7 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
       )}
 
       {/* Booking List */}
-      <div className="bg-white overflow-hidden">
+      <div className="overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-slate-500">Loading bookings...</div>
         ) : bookings.length === 0 ? (
@@ -276,11 +590,11 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr className="border border-slate-200">
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">ID</th>
                   <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Name</th>
                   <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Date</th>
                   <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Time</th>
                   <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Type</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Service Provider</th>
                   <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Status</th>
                   <th className="px-6 py-4 text-right text-sm font-bold text-slate-700 tracking-wider">Action</th>
                 </tr>
@@ -290,10 +604,10 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
                   const actualBooking = bookings.find(b => b.id === displayBooking.id);
                   const status = displayBooking.status?.toLowerCase();
                   return (
-                    <tr key={displayBooking.id} className="border border-slate-200 hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="ID">
+                    <tr key={displayBooking.id} className="bg-white border border-slate-200 hover:bg-slate-50 transition-colors">
+                      {/* <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="ID">
                         {displayBooking.id}
-                      </td>
+                      </td> */}
                       <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Name">
                         <span className="font-medium text-slate-900">{displayBooking.name}</span>
                       </td>
@@ -305,6 +619,9 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Type">
                         <span className="text-sm text-slate-500">{displayBooking.type}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Service Provider">
+                    <span className="text-sm text-slate-500">{displayBooking.service_provider_name}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Status">
                         <span
@@ -452,8 +769,8 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
                     <span className="text-slate-800">{selectedBooking.id}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="text-sm font-medium text-slate-600 w-32">Event Type ID:</span>
-                    <span className="text-slate-800">{selectedBooking.event_type_id || 'N/A'}</span>
+                    <span className="text-sm font-medium text-slate-600 w-32">Event Type:</span>
+                    <span className="text-slate-800">{selectedBooking.event_types?.title || 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="text-sm font-medium text-slate-600 w-32">Status:</span>
@@ -501,11 +818,85 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
                 </div>
               </div>
 
+              {/* Services */}
+              {intakeFormSettings?.services?.enabled && (() => {
+                const intakeForm = selectedBooking.metadata?.intake_form as Record<string, unknown> | undefined;
+                const selectedServiceIds = (intakeForm?.services as string[]) || [];
+                const selectedServiceNames = selectedServiceIds
+                  .map(id => services.find(s => s.id === id)?.name)
+                  .filter(Boolean) as string[];
+                
+                if (selectedServiceNames.length > 0) {
+                  return (
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Services</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedServiceNames.map((name, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300 text-sm"
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Custom Fields */}
+              {intakeFormSettings?.custom_fields && intakeFormSettings.custom_fields.length > 0 && (() => {
+                const intakeForm = selectedBooking.metadata?.intake_form as Record<string, unknown> | undefined;
+                const customFieldValues = intakeForm || {};
+                
+                const fieldsToShow = intakeFormSettings.custom_fields.filter(field => {
+                  const value = customFieldValues[field.id];
+                  return value !== undefined && value !== null && value !== '';
+                });
+
+                if (fieldsToShow.length > 0) {
+                  return (
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Custom Fields</h4>
+                      <div className="space-y-3">
+                        {fieldsToShow.map((field) => {
+                          const value = customFieldValues[field.id];
+                          return (
+                            <div key={field.id} className="flex flex-col sm:flex-row sm:items-center">
+                              <span className="text-sm font-medium text-slate-600 w-32">{field.label}:</span>
+                              <span className="text-slate-800">
+                                {typeof value === 'string' || typeof value === 'number' 
+                                  ? String(value) 
+                                  : Array.isArray(value) 
+                                    ? value.join(', ') 
+                                    : 'N/A'}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               {/* Additional Information */}
-              <div>
-                <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Additional Information</h4>
-                <p className='text-slate-800'>Lorem Ipsum is simply dummy text of the printing and typesetting industry</p>
-              </div>
+              {(intakeFormSettings?.additional_description === true || intakeFormSettings === null) && (() => {
+                const intakeForm = selectedBooking.metadata?.intake_form as Record<string, unknown> | undefined;
+                const notes = intakeForm?.additional_description as string | undefined;
+                const legacyNotes = selectedBooking.metadata?.notes as string | undefined;
+                const displayNotes = notes || legacyNotes;
+                
+                return (
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Additional Information</h4>
+                    <p className='text-slate-800 whitespace-pre-wrap'>{displayNotes || 'N/A'}</p>
+                  </div>
+                );
+              })()}
             </div>
 
           </div>

@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!type || !['google_calendar', 'zoom', 'calendly'].includes(type)) {
+      if (!type || !['google_calendar', 'zoom'].includes(type)) {
       return NextResponse.json({ error: 'Invalid integration type' }, { status: 400 });
     }
 

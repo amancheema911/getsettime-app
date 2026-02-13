@@ -8,7 +8,7 @@ export default function middleware(request: NextRequest) {
 
   // Public routes that don't require authentication
   const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password'];
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route)) || pathname.startsWith('/book/');
 
   // If accessing public routes, allow
   if (isPublicRoute) {

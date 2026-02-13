@@ -1,17 +1,69 @@
 "use client";
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // Check for error or message from OAuth callback
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    const messageParam = searchParams.get('message');
+    const hintParam = searchParams.get('hint');
+    if (errorParam) {
+      const msg = errorParam === 'server_config' && hintParam
+        ? `Server configuration error. Add or fix in .env.local: ${decodeURIComponent(hintParam)}. Restart the dev server after changing .env.local.`
+        : decodeURIComponent(errorParam);
+      setError(msg);
+    } else if (messageParam) {
+      setError('');
+    }
+  }, [searchParams]);
+
+  const handleGoogleLogin = async () => {
+    setError("");
+    setGoogleLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enableCalendarSync: false, // Don't request calendar scope on login
+          isSignup: false,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to initiate Google login');
+        setGoogleLoading(false);
+        return;
+      }
+
+      // Redirect to Google OAuth
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+      } else {
+        setError('No auth URL received');
+        setGoogleLoading(false);
+      }
+    } catch (err: any) {
+      setError(err?.message || 'An unexpected error occurred');
+      setGoogleLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,54 +92,66 @@ export default function LoginPage() {
         return;
       }
 
-      // Extract role from user metadata (JWT contains user_metadata)
-      const userRole = user.user_metadata?.role;
-      const allowedRoles = ['workspace_admin', 'customer'];
-
-      // Check if user has allowed role (workspace_admin or customer)
-      if (!userRole || !allowedRoles.includes(userRole)) {
-        // Sign out the user if they don't have the right role
-        await supabase.auth.signOut();
-        if (userRole === 'superadmin') {
-          setError("Access denied. Superadmin users cannot access the workspace app.");
-        } else {
-          setError("Access denied. Only workspace administrators and customers can access this app.");
-        }
-        setLoading(false);
-        return;
-      }
-
-      // Verify token server-side to get role & workspace (for additional validation)
+      // Verify token server-side FIRST to get deactivated status before proceeding
       const res = await fetch('/api/auth/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token })
       });
       const json = await res.json();
-      
-      // If verify endpoint returns an error, still check if we have role from client
+
+      // Check for server-side errors first
       if (json.error) {
-        // If we already validated role from client metadata, continue
-        // Otherwise, show the error
-        if (!userRole) {
-          setError(json.error);
-          setLoading(false);
-          return;
+        setError(json.error);
+        await supabase.auth.signOut();
+        setLoading(false);
+        return;
+      }
+
+      // Check deactivated status FIRST from server-side verification
+      if (json.deactivated === true) {
+        await supabase.auth.signOut();
+        setError("Your account is deactivated. Please contact admin or manager.");
+        setLoading(false);
+        return;
+      }
+
+      // Extract role from user metadata (JWT contains user_metadata)
+      const userRole = user.user_metadata?.role;
+      const allowedRoles = ['workspace_admin', 'customer', 'manager', 'service_provider'];
+      const isDeactivated = user.user_metadata?.deactivated === true;
+
+      // Double-check deactivated status from client metadata (should match server)
+      if (isDeactivated) {
+        await supabase.auth.signOut();
+        setError("Your account is deactivated. Please contact admin or manager.");
+        setLoading(false);
+        return;
+      }
+
+      // Check if user has allowed role
+      if (!userRole || !allowedRoles.includes(userRole)) {
+        // Sign out the user if they don't have the right role
+        await supabase.auth.signOut();
+        if (userRole === 'superadmin') {
+          setError("Access denied. Superadmin users cannot access the workspace app.");
+        } else {
+          setError("Access denied. Invalid role for workspace access.");
         }
-        // If we have role from client but verify failed, log warning but continue
-        console.warn('Token verification failed but role check passed:', json.error);
-      } else {
-        // Double-check role from server-side verification
-        if (!json.role || !allowedRoles.includes(json.role)) {
-          await supabase.auth.signOut();
-          if (json.role === 'superadmin') {
-            setError("Access denied. Superadmin users cannot access the workspace app.");
-          } else {
-            setError("Access denied. Only workspace administrators and customers can access this app.");
-          }
-          setLoading(false);
-          return;
+        setLoading(false);
+        return;
+      }
+
+      // Double-check role from server-side verification
+      if (!json.role || !allowedRoles.includes(json.role)) {
+        await supabase.auth.signOut();
+        if (json.role === 'superadmin') {
+          setError("Access denied. Superadmin users cannot access the workspace app.");
+        } else {
+          setError("Access denied. Invalid role for workspace access.");
         }
+        setLoading(false);
+        return;
       }
 
       // Set HttpOnly cookies via server endpoint
@@ -143,6 +207,45 @@ export default function LoginPage() {
               <p className="text-sm">{error}</p>
             </div>
           )}
+
+          {/* Google Login */}
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={loading || googleLoading}
+            className="w-full bg-white text-gray-700 py-3 rounded-lg font-medium border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="flex items-center justify-center gap-3">
+              {googleLoading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.73 1.22 9.24 3.62l6.9-6.9C35.9 2.4 30.3 0 24 0 14.6 0 6.52 5.38 2.56 13.22l8.03 6.24C12.6 13.5 17.8 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.1 24.5c0-1.64-.15-3.22-.43-4.75H24v9h12.4c-.54 2.9-2.2 5.36-4.72 7.03l7.2 5.58C43.2 37.2 46.1 31.4 46.1 24.5z"/>
+                    <path fill="#FBBC05" d="M10.6 28.54c-.5-1.5-.78-3.1-.78-4.74s.28-3.24.78-4.74l-8.03-6.24C.93 16.6 0 20.2 0 23.8s.93 7.2 2.56 10.02l8.03-6.28z"/>
+                    <path fill="#34A853" d="M24 48c6.3 0 11.6-2.08 15.46-5.64l-7.2-5.58c-2 1.35-4.56 2.15-8.26 2.15-6.2 0-11.4-4-13.3-9.6l-8.03 6.28C6.52 42.62 14.6 48 24 48z"/>
+                  </svg>
+                  Continue with Google
+                </>
+              )}
+            </span>
+          </button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">or</span>
+            </div>
+          </div>
 
           {/* Email Field */}
           <div>

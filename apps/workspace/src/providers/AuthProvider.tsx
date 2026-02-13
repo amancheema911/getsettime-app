@@ -19,10 +19,15 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext)
 
 // Public routes that don't require authentication
-const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/login", "/auth/register", "/auth/forgot-password"];
+const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/login", "/auth/register", "/auth/forgot-password", "/auth/callback", "/invite-accept"];
+
+// Check if route matches public pattern (e.g., /book/*)
+function isPublicRoutePattern(pathname: string): boolean {
+  return pathname.startsWith('/book/');
+}
 
 // Allowed roles for workspace app
-const ALLOWED_ROLES = ['workspace_admin', 'customer'];
+const ALLOWED_ROLES = ['workspace_admin', 'customer', 'manager', 'service_provider'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -37,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error(error)
         setLoading(false)
-        if (!PUBLIC_ROUTES.includes(pathname)) {
+        if (!PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
           router.push('/login')
         }
         return
@@ -46,16 +51,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const session = data.session
       const currentUser = session?.user ?? null
       
-      // If user is logged in, verify role
+      // If user is logged in, verify role and deactivated status
       if (currentUser) {
         const userRole = currentUser.user_metadata?.role
-        // Block superadmin and only allow workspace_admin and customer
-        if (!userRole || !ALLOWED_ROLES.includes(userRole)) {
+        const isDeactivated = currentUser.user_metadata?.deactivated === true
+        const isAuthCallback = pathname === "/auth/callback"
+
+        // Check if user is deactivated
+        if (isDeactivated) {
+          await supabase.auth.signOut()
+          setUser(null)
+          setLoading(false)
+          if (!PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
+            router.push('/login')
+          }
+          return
+        }
+
+        // Block superadmin and only allow workspace roles
+        // NOTE: For /auth/callback allow a temporary missing role so the callback page can set it.
+        if (!isAuthCallback && (!userRole || !ALLOWED_ROLES.includes(userRole))) {
           // Sign out user with wrong role
           await supabase.auth.signOut()
           setUser(null)
           setLoading(false)
-          if (!PUBLIC_ROUTES.includes(pathname)) {
+          if (!PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
             router.push('/login')
           }
           return
@@ -66,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       
       // Only redirect to login if not on a public route
-      if (!session && !PUBLIC_ROUTES.includes(pathname)) {
+      if (!session && !PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
         router.push('/login')
       }
     }
@@ -79,15 +99,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user ?? null
       
-      // If user is logged in, verify role
+      // If user is logged in, verify role and deactivated status
       if (currentUser) {
         const userRole = currentUser.user_metadata?.role
-        // Block superadmin and only allow workspace_admin and customer
-        if (!userRole || !ALLOWED_ROLES.includes(userRole)) {
+        const isDeactivated = currentUser.user_metadata?.deactivated === true
+        const isAuthCallback = pathname === "/auth/callback"
+
+        // Check if user is deactivated
+        if (isDeactivated) {
+          await supabase.auth.signOut()
+          setUser(null)
+          if (!PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
+            router.push('/login')
+          }
+          return
+        }
+
+        // Block superadmin and only allow workspace roles
+        // NOTE: For /auth/callback allow a temporary missing role so the callback page can set it.
+        if (!isAuthCallback && (!userRole || !ALLOWED_ROLES.includes(userRole))) {
           // Sign out user with wrong role
           await supabase.auth.signOut()
           setUser(null)
-          if (!PUBLIC_ROUTES.includes(pathname)) {
+          if (!PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
             router.push('/login')
           }
           return
@@ -97,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(currentUser)
       
       // Only redirect to login if not on a public route
-      if (!session && !PUBLIC_ROUTES.includes(pathname)) {
+      if (!session && !PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
         router.push('/login')
       }
       

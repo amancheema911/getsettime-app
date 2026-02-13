@@ -6,7 +6,6 @@ import { useSearchParams } from "next/navigation";
 interface IntegrationStatus {
   google_calendar: boolean;
   zoom: boolean;
-  calendly: boolean;
 }
 
 function IntegrationsContent() {
@@ -14,7 +13,6 @@ function IntegrationsContent() {
   const [integrations, setIntegrations] = useState<IntegrationStatus>({
     google_calendar: false,
     zoom: false,
-    calendly: false,
   });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -55,7 +53,6 @@ function IntegrationsContent() {
         setIntegrations(data.integrations || {
           google_calendar: false,
           zoom: false,
-          calendly: false,
         });
       }
     } catch (error) {
@@ -65,7 +62,7 @@ function IntegrationsContent() {
     }
   };
 
-  const handleConnect = async (type: 'google' | 'zoom' | 'calendly') => {
+  const handleConnect = async (type: 'google' | 'zoom') => {
     setActionLoading(type);
     setMessage(null);
     try {
@@ -99,7 +96,7 @@ function IntegrationsContent() {
     }
   };
 
-  const handleDisconnect = async (type: 'google_calendar' | 'zoom' | 'calendly') => {
+  const handleDisconnect = async (type: 'google_calendar' | 'zoom') => {
     if (!confirm(`Are you sure you want to disconnect ${type}?`)) {
       return;
     }
@@ -138,7 +135,6 @@ function IntegrationsContent() {
     const messages: Record<string, string> = {
       google_connected: 'Google Calendar connected successfully!',
       zoom_connected: 'Zoom connected successfully!',
-      calendly_connected: 'Calendly connected successfully!',
     };
     return messages[success] || 'Connection successful!';
   };
@@ -164,13 +160,6 @@ function IntegrationsContent() {
       desc: "Add Events to your Calender and prevent Double Booking", 
       connected: integrations.google_calendar,
       connectType: 'google' as const,
-    },
-    { 
-      id: 'calendly',
-      name: "Calendly", 
-      desc: "Sync work calendly", 
-      connected: integrations.calendly,
-      connectType: 'calendly' as const,
     },
     { 
       id: 'zoom',
@@ -213,7 +202,7 @@ function IntegrationsContent() {
                   {it.connected ? "Connected" : "Not connected"}
                 </span>
                 <button 
-                  onClick={() => it.connected ? handleDisconnect(it.id as 'google_calendar' | 'zoom' | 'calendly') : handleConnect(it.connectType)}
+                  onClick={() => it.connected ? handleDisconnect(it.id as 'google_calendar' | 'zoom') : handleConnect(it.connectType)}
                   disabled={actionLoading !== null}
                   className={`px-3 py-1 text-sm font-medium rounded-xl transition ${
                     it.connected 

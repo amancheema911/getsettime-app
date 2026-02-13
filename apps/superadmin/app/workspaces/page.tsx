@@ -399,21 +399,16 @@ const WorkspacesPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <section className="bg-gradient-to-r from-slate-50 to-white rounded-xl p-8 shadow-lg border border-slate-100/50 backdrop-blur-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <section className="space-y-6">
+        <header className="flex flex-wrap justify-between relative gap-3">
           <div className="space-y-3">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-              Workspaces
-            </h1>
-            <p className="text-slate-500 text-lg">Manage all workspaces in the platform</p>
+            <h1 className="text-xl font-semibold text-slate-800">Workspaces</h1>
+            <p className="text-xs text-slate-500">Manage all workspaces in the platform</p>
           </div>
-          <button
-            onClick={handleAdd}
-            className="px-6 py-3 rounded-xl text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-md hover:shadow-lg"
-          >
+          <button onClick={handleAdd} className="cursor-pointer text-sm font-bold text-indigo-600 transition">
             + Add Workspace
           </button>
-        </div>
+        </header>
       </section>
 
       {/* Error Message */}
@@ -424,7 +419,7 @@ const WorkspacesPage: React.FC = () => {
       )}
 
       {/* Workspaces List */}
-      <section className="bg-white rounded-xl shadow-lg border border-slate-100/50 overflow-hidden">
+      <section className="overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-slate-500">Loading workspaces...</div>
         ) : workspaces.length === 0 ? (
@@ -436,29 +431,29 @@ const WorkspacesPage: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                <tr className="border border-slate-200">
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
                     Name
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
                     Slug
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
                     Colors
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
                     Created
                   </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-right text-sm font-bold text-slate-700 tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {workspaces.map((workspace) => (
-                  <tr key={workspace.id} className="hover:bg-slate-50 transition">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
+                  <tr key={workspace.id} className="bg-white border border-slate-200 hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Name">
+                      <div className="item-align-end flex items-center gap-3">
                         {workspace.logo_url ? (
                           <img
                             src={workspace.logo_url}
@@ -479,13 +474,13 @@ const WorkspacesPage: React.FC = () => {
                         <span className="font-medium text-slate-900">{workspace.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Slug">
                       <code className="text-sm bg-slate-100 px-2 py-1 rounded text-slate-700">
                         {workspace.slug}
                       </code>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Colors">
+                      <div className="item-align-end flex items-center gap-2">
                         {workspace.primary_color && (
                           <div
                             className="w-6 h-6 rounded border border-slate-300"
@@ -505,20 +500,20 @@ const WorkspacesPage: React.FC = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Created">
                       {new Date(workspace.created_at).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Actions">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleEdit(workspace)}
-                          className="text-indigo-600 hover:text-indigo-900 px-3 py-1 rounded hover:bg-indigo-50 transition"
+                          className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10 hover:bg-indigo-100 cursor-pointer"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDeleteClick(workspace)}
-                          className="text-red-600 hover:text-red-900 px-3 py-1 rounded hover:bg-red-50 transition"
+                          className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10 hover:bg-red-100 cursor-pointer"
                         >
                           Delete
                         </button>
@@ -534,278 +529,314 @@ const WorkspacesPage: React.FC = () => {
 
       {/* Add/Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200">
-              <h2 className="text-2xl font-bold text-slate-900">
-                {editingWorkspace ? 'Edit Workspace' : 'Add New Workspace'}
-              </h2>
+        <div className={`fixed inset-0 z-40 flex m-0 justify-end transition-opacity duration-200 ${ isModalOpen ? 'pointer-events-auto opacity-100' :  'pointer-events-none opacity-0'}`}>
+          <div className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${ isModalOpen ? 'opacity-100' : 'opacity-0' }`} aria-hidden="true" onClick={() => {
+                      setIsModalOpen(false);
+                      setEditingWorkspace(null);
+                      setFormErrors({});
+                      setModalError(null);
+                      setLogoFile(null);
+                      setLogoPreview(null);
+                      setOriginalLogoUrl(null);
+                    }}/>
+          <section className={`relative h-full w-full max-w-xl transform bg-white shadow-2xl transition-transform duration-300 ${ isModalOpen ? 'translate-x-0' : 'translate-x-full' }`}>
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">{editingWorkspace ? 'Edit Workspace' : 'Add New Workspace'}</h2>
+              </div>
+              <button className="rounded-full p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 cursor-pointer" aria-label="Close booking form" onClick={() => {
+                      setIsModalOpen(false);
+                      setEditingWorkspace(null);
+                      setFormErrors({});
+                      setModalError(null);
+                      setLogoFile(null);
+                      setLogoPreview(null);
+                      setOriginalLogoUrl(null);
+                    }}>
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {/* Error Message in Modal */}
-              {modalError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm">
-                  {modalError}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                    formErrors.name ? 'border-red-500' : 'border-slate-300'
-                  }`}
-                  placeholder="Workspace Name"
-                />
-                {formErrors.name && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
+            <div className="h-[calc(100%-4rem)] overflow-y-auto p-6">
+              <form onSubmit={handleSubmit} className="grid gap-4 p-5 rounded-xl border border-slate-200 bg-gray-50/70">
+                {/* Error Message in Modal */}
+                {modalError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm">
+                    {modalError}
+                  </div>
                 )}
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Slug <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase() })}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                    formErrors.slug ? 'border-red-500' : 'border-slate-300'
-                  }`}
-                  placeholder="workspace-slug"
-                />
-                {formErrors.slug && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.slug}</p>
-                )}
-                <p className="mt-1 text-xs text-slate-500">
-                  Lowercase letters, numbers, hyphens, and underscores only
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Primary Color
+                    Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    value={formData.primary_color}
-                    onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      formErrors.primary_color ? 'border-red-500' : 'border-slate-300'
+                      formErrors.name ? 'border-red-500' : 'border-slate-300'
                     }`}
-                    placeholder="#FF5733"
+                    placeholder="Workspace Name"
                   />
-                  {formErrors.primary_color && (
-                    <p className="mt-1 text-sm text-red-600">{formErrors.primary_color}</p>
+                  {formErrors.name && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
                   )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Accent Color
+                    Slug <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    value={formData.accent_color}
-                    onChange={(e) => setFormData({ ...formData, accent_color: e.target.value })}
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase() })}
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      formErrors.accent_color ? 'border-red-500' : 'border-slate-300'
+                      formErrors.slug ? 'border-red-500' : 'border-slate-300'
                     }`}
-                    placeholder="#33C3F0"
+                    placeholder="workspace-slug"
                   />
-                  {formErrors.accent_color && (
-                    <p className="mt-1 text-sm text-red-600">{formErrors.accent_color}</p>
+                  {formErrors.slug && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.slug}</p>
                   )}
+                  <p className="mt-1 text-xs text-slate-500">
+                    Lowercase letters, numbers, hyphens, and underscores only
+                  </p>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Logo
-                </label>
-                
-                {/* Logo Preview */}
-                {(logoPreview || formData.logo_url) && (
-                  <div className="mb-3 flex items-center gap-3">
-                    <img
-                      src={logoPreview || formData.logo_url}
-                      alt="Logo preview"
-                      className="w-24 h-24 object-cover rounded-lg border border-slate-300"
-                    />
-                    {logoFile && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLogoFile(null);
-                          setLogoPreview(formData.logo_url || null);
-                          // Reset file input
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = '';
-                          }
-                        }}
-                        className="text-sm text-red-600 hover:text-red-800 px-3 py-1 rounded hover:bg-red-50 transition"
-                      >
-                        Remove File
-                      </button>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Primary Color
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-full h-12 rounded-lg border border-slate-300 cursor-pointer"
+                        style={{ backgroundColor: formData.primary_color || '#FF5733' }}
+                        onClick={() => document.getElementById('primary-color-input')?.click()}
+                      />
+                      <input
+                        id="primary-color-input"
+                        type="color"
+                        value={formData.primary_color || '#FF5733'}
+                        onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
+                        className="sr-only"
+                      />
+                      <input
+                        type="text"
+                        value={formData.primary_color}
+                        onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
+                        className={`w-32 px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                          formErrors.primary_color ? 'border-red-500' : 'border-slate-300'
+                        }`}
+                        placeholder="#FF5733"
+                      />
+                    </div>
+                    {formErrors.primary_color && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.primary_color}</p>
                     )}
                   </div>
-                )}
 
-                {/* File Upload Input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                  onChange={handleLogoFileChange}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                  disabled={uploadingLogo}
-                />
-                {formErrors.logo && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.logo}</p>
-                )}
-                <p className="mt-1 text-xs text-slate-500">
-                  Upload a logo image (JPEG, PNG, GIF, or WebP). Maximum size: 5MB.
-                  {editingWorkspace && !logoFile && ' Leave empty to keep existing logo.'}
-                </p>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Accent Color
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-full h-12 rounded-lg border border-slate-300 cursor-pointer"
+                        style={{ backgroundColor: formData.accent_color || '#33C3F0' }}
+                        onClick={() => document.getElementById('accent-color-input')?.click()}
+                      />
+                      <input
+                        id="accent-color-input"
+                        type="color"
+                        value={formData.accent_color || '#33C3F0'}
+                        onChange={(e) => setFormData({ ...formData, accent_color: e.target.value })}
+                        className="sr-only"
+                      />
+                      <input
+                        type="text"
+                        value={formData.accent_color}
+                        onChange={(e) => setFormData({ ...formData, accent_color: e.target.value })}
+                        className={`w-32 px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                          formErrors.accent_color ? 'border-red-500' : 'border-slate-300'
+                        }`}
+                        placeholder="#33C3F0"
+                      />
+                    </div>
+                    {formErrors.accent_color && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.accent_color}</p>
+                    )}
+                  </div>
+                </div>
 
-                {/* Alternative: Manual URL input */}
-                <div className="mt-3">
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Or enter logo URL manually:
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Logo
+                  </label>
+                  
+                  {/* Logo Preview */}
+                  {(logoPreview || formData.logo_url) && (
+                    <div className="mb-3 flex items-center gap-3">
+                      <img
+                        src={logoPreview || formData.logo_url}
+                        alt="Logo preview"
+                        className="w-24 h-24 object-cover rounded-lg border border-slate-300"
+                      />
+                      {logoFile && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLogoFile(null);
+                            setLogoPreview(formData.logo_url || null);
+                            // Reset file input
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = '';
+                            }
+                          }}
+                          className="text-sm text-red-600 hover:text-red-800 px-3 py-1 rounded hover:bg-red-50 transition"
+                        >
+                          Remove File
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* File Upload Input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    onChange={handleLogoFileChange}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    disabled={uploadingLogo}
+                  />
+                  {formErrors.logo && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.logo}</p>
+                  )}
+                  <p className="mt-1 text-xs text-slate-500">
+                    Upload a logo image (JPEG, PNG, GIF, or WebP). Maximum size: 5MB.
+                    {editingWorkspace && !logoFile && ' Leave empty to keep existing logo.'}
+                  </p>
+
+                  {/* Alternative: Manual URL input */}
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                      Or enter logo URL manually:
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.logo_url}
+                      onChange={(e) => {
+                        setFormData({ ...formData, logo_url: e.target.value });
+                        if (e.target.value) {
+                          setLogoPreview(e.target.value);
+                        } else if (!logoFile) {
+                          setLogoPreview(null);
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                      placeholder="https://example.com/logo.png"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Billing Customer ID
                   </label>
                   <input
-                    type="url"
-                    value={formData.logo_url}
-                    onChange={(e) => {
-                      setFormData({ ...formData, logo_url: e.target.value });
-                      if (e.target.value) {
-                        setLogoPreview(e.target.value);
-                      } else if (!logoFile) {
-                        setLogoPreview(null);
-                      }
-                    }}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                    placeholder="https://example.com/logo.png"
+                    type="text"
+                    value={formData.billing_customer_id}
+                    onChange={(e) => setFormData({ ...formData, billing_customer_id: e.target.value })}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="cus_xxxxx"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Billing Customer ID
-                </label>
-                <input
-                  type="text"
-                  value={formData.billing_customer_id}
-                  onChange={(e) => setFormData({ ...formData, billing_customer_id: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="cus_xxxxx"
-                />
-              </div>
+                {/* User Information Section - Only show when creating (not editing) */}
+                {!editingWorkspace && (
+                  <>
+                    <div className="pt-4 border-t border-slate-200">
+                      <h3 className="text-lg font-semibold text-slate-900 mb-4">Workspace Admin User</h3>
+                      <p className="text-sm text-slate-600 mb-4">
+                        Create a workspace admin user for this workspace. This user will have admin access to manage the workspace.
+                      </p>
+                    </div>
 
-              {/* User Information Section - Only show when creating (not editing) */}
-              {!editingWorkspace && (
-                <>
-                  <div className="pt-4 border-t border-slate-200">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Workspace Admin User</h3>
-                    <p className="text-sm text-slate-600 mb-4">
-                      Create a workspace admin user for this workspace. This user will have admin access to manage the workspace.
-                    </p>
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Admin Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.admin_name}
+                        onChange={(e) => setFormData({ ...formData, admin_name: e.target.value })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                          formErrors.admin_name ? 'border-red-500' : 'border-slate-300'
+                        }`}
+                        placeholder="John Doe"
+                      />
+                      {formErrors.admin_name && (
+                        <p className="mt-1 text-sm text-red-600">{formErrors.admin_name}</p>
+                      )}
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Admin Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.admin_name}
-                      onChange={(e) => setFormData({ ...formData, admin_name: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                        formErrors.admin_name ? 'border-red-500' : 'border-slate-300'
-                      }`}
-                      placeholder="John Doe"
-                    />
-                    {formErrors.admin_name && (
-                      <p className="mt-1 text-sm text-red-600">{formErrors.admin_name}</p>
-                    )}
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Admin Email <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.admin_email}
+                        onChange={(e) => setFormData({ ...formData, admin_email: e.target.value })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                          formErrors.admin_email ? 'border-red-500' : 'border-slate-300'
+                        }`}
+                        placeholder="admin@example.com"
+                      />
+                      {formErrors.admin_email && (
+                        <p className="mt-1 text-sm text-red-600">{formErrors.admin_email}</p>
+                      )}
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Admin Email <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.admin_email}
-                      onChange={(e) => setFormData({ ...formData, admin_email: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                        formErrors.admin_email ? 'border-red-500' : 'border-slate-300'
-                      }`}
-                      placeholder="admin@example.com"
-                    />
-                    {formErrors.admin_email && (
-                      <p className="mt-1 text-sm text-red-600">{formErrors.admin_email}</p>
-                    )}
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Admin Password <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="password"
+                        value={formData.admin_password}
+                        onChange={(e) => setFormData({ ...formData, admin_password: e.target.value })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                          formErrors.admin_password ? 'border-red-500' : 'border-slate-300'
+                        }`}
+                        placeholder="••••••••"
+                      />
+                      {formErrors.admin_password && (
+                        <p className="mt-1 text-sm text-red-600">{formErrors.admin_password}</p>
+                      )}
+                      <p className="mt-1 text-xs text-slate-500">
+                        Password must be at least 6 characters long
+                      </p>
+                    </div>
+                  </>
+                )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Admin Password <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="password"
-                      value={formData.admin_password}
-                      onChange={(e) => setFormData({ ...formData, admin_password: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                        formErrors.admin_password ? 'border-red-500' : 'border-slate-300'
-                      }`}
-                      placeholder="••••••••"
-                    />
-                    {formErrors.admin_password && (
-                      <p className="mt-1 text-sm text-red-600">{formErrors.admin_password}</p>
-                    )}
-                    <p className="mt-1 text-xs text-slate-500">
-                      Password must be at least 6 characters long
-                    </p>
-                  </div>
-                </>
-              )}
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setEditingWorkspace(null);
-                    setFormErrors({});
-                    setModalError(null);
-                    setLogoFile(null);
-                    setLogoPreview(null);
-                    setOriginalLogoUrl(null);
-                  }}
-                  className="px-4 py-2 text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition"
-                  disabled={submitting || uploadingLogo}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={submitting || uploadingLogo}
-                >
-                  {uploadingLogo ? 'Uploading...' : submitting ? 'Saving...' : editingWorkspace ? 'Update' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    disabled={submitting || uploadingLogo}
+                  >
+                    {uploadingLogo ? 'Uploading...' : submitting ? 'Saving...' : editingWorkspace ? 'Update' : 'Create'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </section>
         </div>
       )}
 
@@ -856,4 +887,3 @@ const WorkspacesPage: React.FC = () => {
 };
 
 export default WorkspacesPage;
-

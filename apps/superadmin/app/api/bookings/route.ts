@@ -13,19 +13,23 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
     
     // Parse sorting parameters
-    const sortBy = searchParams.get('sortBy') || 'created_at';
+    const sortBy = searchParams.get('sortBy') || 'date';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
     const ascending = sortOrder === 'asc';
     
-    // Parse filter parameter
+    // Parse filter parameters
     const filter = searchParams.get('filter') || '';
+    const date = searchParams.get('date') || '';
+    const status = searchParams.get('status') || '';
+    const eventTypeId = searchParams.get('event_type_id') || '';
+    const workspaceId = searchParams.get('workspace_id') || '';
     
-    // Build query
+    // Build query with event_types join to get event type title
     let query = supabaseServer
       .from('bookings')
-      .select('*', { count: 'exact' });
+      .select('*, event_types(title)', { count: 'exact' });
     
-    // Apply filter if provided (search in invitee_name, invitee_email, or workspace name)
+    // Apply search filter if provided (search in invitee_name, invitee_email, or workspace name)
     if (filter) {
       const filterPattern = `%${filter}%`;
       
@@ -46,6 +50,34 @@ export async function GET(request: NextRequest) {
         query = query.or(`invitee_name.ilike.${filterPattern},invitee_email.ilike.${filterPattern}`);
       }
     }
+
+    // Apply date filter if provided (fetch bookings for a specific date)
+    if (date) {
+      const dateObj = new Date(date);
+      const startOfDay = new Date(dateObj);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(dateObj);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      query = query
+        .gte('start_at', startOfDay.toISOString())
+        .lte('start_at', endOfDay.toISOString());
+    }
+
+    // Apply status filter if provided
+    if (status.trim()) {
+      query = query.eq('status', status.trim());
+    }
+
+    // Apply event type filter if provided
+    if (eventTypeId.trim()) {
+      query = query.eq('event_type_id', eventTypeId.trim());
+    }
+
+    // Apply workspace filter if provided
+    if (workspaceId.trim()) {
+      query = query.eq('workspace_id', workspaceId.trim());
+    }
     
     // Apply sorting
     const validSortFields: Record<string, string> = {
@@ -55,7 +87,7 @@ export async function GET(request: NextRequest) {
       'created_at': 'created_at',
     };
     
-    const sortField = validSortFields[sortBy] || 'created_at';
+    const sortField = validSortFields[sortBy] || 'start_at';
     query = query.order(sortField, { ascending });
     
     // Apply pagination

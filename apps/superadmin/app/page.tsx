@@ -90,24 +90,24 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <section aria-label="welcome-note" className="bg-gradient-to-r from-slate-50 to-white rounded-xl p-8 shadow-lg border border-slate-100/50 backdrop-blur-sm">
+      <section aria-label="welcome-note" className="bg-indigo-600 rounded-xl p-8 shadow-md border border-slate-100/50 backdrop-blur-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3">
+          <div className="relative">
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">Welcome, {userName}</h1>
-              <span className="animate-wave inline-block">👋</span>
+              <h1 className="text-3xl font-bold text-white">Welcome, {userName}</h1>
+              <span className="animate-wave text-2xl inline-block">👋</span>
             </div>
-            <p className="text-slate-500 text-lg">Superadmin Dashboard - Full access to all data and settings.</p>
+            <p className="text-white text-sm">Superadmin Dashboard - Full access to all data and settings.</p>
           </div>
           <div className="flex flex-wrap gap-4">
-            <Link href="/users" className="px-4 py-2 rounded-xl text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition">Manage Users</Link>
-            <Link href="/workspaces" className="px-4 py-2 rounded-xl text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition">View Workspaces</Link>
+            <Link href="/users" className="px-4 py-2 rounded-lg text-sm font-medium bg-white text-indigo-600 hover:bg-transparent hover:border-white hover:text-white border border-white transition">Manage Users</Link>
+            <Link href="/workspaces" className="px-4 py-2 rounded-lg text-sm font-medium bg-white text-indigo-600 hover:bg-transparent hover:border-white hover:text-white border border-white transition">View Workspaces</Link>
           </div>
         </div>
       </section>
 
       {/* Box Section */}
-      <section aria-label="box-section" className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <section aria-label="box-section" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
         
         {/* Total Users Card */}
         <div className="group relative bg-gradient-to-br from-white to-[#f0f7ff] border border-[#dbe9ff] rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
@@ -187,16 +187,11 @@ const Dashboard: React.FC = () => {
       {/* Users and Workspaces Lists Section */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Users */}
-        <div className="bg-white rounded-xl shadow-lg border border-slate-100/50 overflow-hidden">
-          <div className="p-6 border-b border-slate-200 bg-slate-50">
+        <div className="bg-white rounded-xl shadow-md border border-slate-100/50 overflow-hidden">
+          <div className="py-3 px-4 border-b border-slate-200 bg-indigo-600">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900">Recent Users</h2>
-              <Link 
-                href="/users" 
-                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-              >
-                View All →
-              </Link>
+              <h2 className="text-lg font-semibold text-white">Recent Users</h2>
+              <Link href="/users" className="text-sm bg-white px-2 py-1 rounded-lg text-indigo-600 font-medium">View All →</Link>
             </div>
           </div>
           <div className="divide-y divide-slate-200">
@@ -243,16 +238,11 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Recent Workspaces */}
-        <div className="bg-white rounded-xl shadow-lg border border-slate-100/50 overflow-hidden">
-          <div className="p-6 border-b border-slate-200 bg-slate-50">
+        <div className="bg-white rounded-xl shadow-md border border-slate-100/50 overflow-hidden">
+          <div className="py-3 px-4 border-b border-slate-200 bg-indigo-600">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900">Recent Workspaces</h2>
-              <Link 
-                href="/workspaces" 
-                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-              >
-                View All →
-              </Link>
+              <h2 className="text-lg font-semibold text-white">Recent Workspaces</h2>
+              <Link href="/workspaces" className="text-sm bg-white px-2 py-1 rounded-lg text-indigo-600 font-medium">View All →</Link>
             </div>
           </div>
           <div className="divide-y divide-slate-200">

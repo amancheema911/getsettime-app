@@ -319,21 +319,14 @@ const UsersPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <section className="bg-gradient-to-r from-slate-50 to-white rounded-xl p-8 shadow-lg border border-slate-100/50 backdrop-blur-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <section className="space-y-6">
+        <header className="flex flex-wrap justify-between relative gap-3">
           <div className="space-y-3">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-              Users
-            </h1>
-            <p className="text-slate-500 text-lg">Manage all users in the platform</p>
+            <h1 className="text-xl font-semibold text-slate-800">Users</h1>
+            <p className="text-xs text-slate-500">Manage all users in the platform</p>
           </div>
-          <button
-            onClick={handleAdd}
-            className="px-6 py-3 rounded-xl text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-md hover:shadow-lg"
-          >
-            + Add User
-          </button>
-        </div>
+          <button onClick={handleAdd} className="cursor-pointer text-sm font-bold text-indigo-600 transition">+ Add User</button>
+        </header>
       </section>
 
       {/* Error Message */}
@@ -344,8 +337,8 @@ const UsersPage: React.FC = () => {
       )}
 
       {/* Filters Section */}
-      <section className="bg-white rounded-xl shadow-lg border border-slate-100/50 p-6">
-        <div className="flex flex-col gap-4">
+      <section className="bg-white rounded-xl shadow-sm border border-slate-100/50 p-6">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Filters</h2>
             {hasActiveFilters && (
@@ -420,7 +413,7 @@ const UsersPage: React.FC = () => {
       </section>
 
       {/* Users List */}
-      <section className="bg-white rounded-xl shadow-lg border border-slate-100/50 overflow-hidden">
+      <section className="overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-slate-500">Loading users...</div>
         ) : users.length === 0 ? (
@@ -448,37 +441,37 @@ const UsersPage: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                <tr className="border border-slate-200">
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
                     Name
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
                     Email
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
                     Role
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
                     Workspace
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
                     Created
                   </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-right text-sm font-bold text-slate-700 tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50 transition">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="font-medium text-slate-900">{user.name || '-'}</span>
+                  <tr key={user.id} className="bg-white border border-slate-200 hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Name">
+                      <span className="font-semibold text-slate-900">{user.name || '-'}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Email">
                       <span className="text-slate-700">{user.email}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Role">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         user.role === 'superadmin' 
                           ? 'bg-purple-100 text-purple-800'
@@ -489,25 +482,25 @@ const UsersPage: React.FC = () => {
                         {formatRole(user.role)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-slate-500">
+                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Workspace">
+                      <span className="text-sm text-slate-700">
                         {getWorkspaceName(user.workspace_id)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Created">
                       {new Date(user.created_at).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Actions">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleEdit(user)}
-                          className="text-indigo-600 hover:text-indigo-900 px-3 py-1 rounded hover:bg-indigo-50 transition"
+                          className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10 hover:bg-indigo-100 cursor-pointer"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDeleteClick(user)}
-                          className="text-red-600 hover:text-red-900 px-3 py-1 rounded hover:bg-red-50 transition"
+                          className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10 hover:bg-red-100 cursor-pointer"
                         >
                           Delete
                         </button>
@@ -523,158 +516,163 @@ const UsersPage: React.FC = () => {
 
       {/* Add/Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200">
-              <h2 className="text-2xl font-bold text-slate-900">
-                {editingUser ? 'Edit User' : 'Add New User'}
-              </h2>
+        <div className={`fixed inset-0 z-40 flex m-0 justify-end transition-opacity duration-200 ${ isModalOpen ? 'pointer-events-auto opacity-100' :  'pointer-events-none opacity-0'}`}>
+          <div className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${ isModalOpen ? 'opacity-100' : 'opacity-0' }`} aria-hidden="true" onClick={() => {
+                      setIsModalOpen(false);
+                      setEditingUser(null);
+                      setFormErrors({});
+                      setModalError(null);
+                    }}/>
+          <section className={`relative h-full w-full max-w-xl transform bg-white shadow-2xl transition-transform duration-300 ${ isModalOpen ? 'translate-x-0' : 'translate-x-full' }`}>
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">{editingUser ? 'Edit User' : 'Add New User'}</h2>
+              </div>
+              <button className="rounded-full p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700" aria-label="Close booking form" onClick={() => {
+                      setIsModalOpen(false);
+                      setEditingUser(null);
+                      setFormErrors({});
+                      setModalError(null);
+                    }}>
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {/* Error Message in Modal */}
-              {modalError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm">
-                  {modalError}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                    formErrors.email ? 'border-red-500' : 'border-slate-300'
-                  }`}
-                  placeholder="user@example.com"
-                />
-                {formErrors.email && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
+            <div className="h-[calc(100%-4rem)] overflow-y-auto p-6">
+            <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-4 p-5 rounded-xl border border-slate-200 bg-gray-50/70">
+                {/* Error Message in Modal */}
+                {modalError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm">
+                    {modalError}
+                  </div>
                 )}
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Password {!editingUser && <span className="text-red-500">*</span>}
-                  {editingUser && <span className="text-slate-400 text-xs">(leave empty to keep current)</span>}
-                </label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                    formErrors.password ? 'border-red-500' : 'border-slate-300'
-                  }`}
-                  placeholder={editingUser ? "Leave empty to keep current password" : "Password"}
-                />
-                {formErrors.password && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                    formErrors.name ? 'border-red-500' : 'border-slate-300'
-                  }`}
-                  placeholder="Full Name"
-                />
-                {formErrors.name && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Role <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => {
-                    const newRole = e.target.value as 'superadmin' | 'workspace_admin' | 'customer';
-                    setFormData({ 
-                      ...formData, 
-                      role: newRole,
-                      // Clear workspace_id only if role is superadmin
-                      workspace_id: (newRole === 'customer' || newRole === 'workspace_admin') ? formData.workspace_id : ''
-                    });
-                  }}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                    formErrors.role ? 'border-red-500' : 'border-slate-300'
-                  }`}
-                >
-                  <option value="superadmin">Superadmin</option>
-                  <option value="workspace_admin">Workspace Admin</option>
-                  <option value="customer">Customer</option>
-                </select>
-                {formErrors.role && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.role}</p>
-                )}
-              </div>
-
-              {(formData.role === 'customer' || formData.role === 'workspace_admin') && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Workspace <span className="text-red-500">*</span>
+                    Email <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={formData.workspace_id}
-                    onChange={(e) => setFormData({ ...formData, workspace_id: e.target.value })}
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      formErrors.workspace_id ? 'border-red-500' : 'border-slate-300'
+                      formErrors.email ? 'border-red-500' : 'border-slate-300'
                     }`}
-                  >
-                    <option value="">Select a workspace</option>
-                    {workspaces.map((workspace) => (
-                      <option key={workspace.id} value={workspace.id}>
-                        {workspace.name}
-                      </option>
-                    ))}
-                  </select>
-                  {formErrors.workspace_id && (
-                    <p className="mt-1 text-sm text-red-600">{formErrors.workspace_id}</p>
-                  )}
-                  {workspaces.length === 0 && (
-                    <p className="mt-1 text-xs text-slate-500">
-                      No workspaces available. Please create a workspace first.
-                    </p>
+                    placeholder="user@example.com"
+                  />
+                  {formErrors.email && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
                   )}
                 </div>
-              )}
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setEditingUser(null);
-                    setFormErrors({});
-                    setModalError(null);
-                  }}
-                  className="px-4 py-2 text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition"
-                  disabled={submitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={submitting}
-                >
-                  {submitting ? 'Saving...' : editingUser ? 'Update' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Password {!editingUser && <span className="text-red-500">*</span>}
+                    {editingUser && <span className="text-slate-400 text-xs">(leave empty to keep current)</span>}
+                  </label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                      formErrors.password ? 'border-red-500' : 'border-slate-300'
+                    }`}
+                    placeholder={editingUser ? "Leave empty to keep current password" : "Password"}
+                  />
+                  {formErrors.password && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                      formErrors.name ? 'border-red-500' : 'border-slate-300'
+                    }`}
+                    placeholder="Full Name"
+                  />
+                  {formErrors.name && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Role <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.role}
+                    onChange={(e) => {
+                      const newRole = e.target.value as 'superadmin' | 'workspace_admin' | 'customer';
+                      setFormData({ 
+                        ...formData, 
+                        role: newRole,
+                        // Clear workspace_id only if role is superadmin
+                        workspace_id: (newRole === 'customer' || newRole === 'workspace_admin') ? formData.workspace_id : ''
+                      });
+                    }}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                      formErrors.role ? 'border-red-500' : 'border-slate-300'
+                    }`}
+                  >
+                    <option value="superadmin">Superadmin</option>
+                    <option value="workspace_admin">Workspace Admin</option>
+                    <option value="customer">Customer</option>
+                  </select>
+                  {formErrors.role && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.role}</p>
+                  )}
+                </div>
+
+                {(formData.role === 'customer' || formData.role === 'workspace_admin') && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Workspace <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.workspace_id}
+                      onChange={(e) => setFormData({ ...formData, workspace_id: e.target.value })}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                        formErrors.workspace_id ? 'border-red-500' : 'border-slate-300'
+                      }`}
+                    >
+                      <option value="">Select a workspace</option>
+                      {workspaces.map((workspace) => (
+                        <option key={workspace.id} value={workspace.id}>
+                          {workspace.name}
+                        </option>
+                      ))}
+                    </select>
+                    {formErrors.workspace_id && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.workspace_id}</p>
+                    )}
+                    {workspaces.length === 0 && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        No workspaces available. Please create a workspace first.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="md:col-span-2 flex justify-end gap-3">
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Saving...' : editingUser ? 'Update' : 'Create'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </section>
         </div>
       )}
 
@@ -725,4 +723,3 @@ const UsersPage: React.FC = () => {
 };
 
 export default UsersPage;
-

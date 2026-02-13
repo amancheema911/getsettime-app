@@ -8,7 +8,7 @@ const supabaseAdmin = supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
 
-export type IntegrationType = 'google_calendar' | 'zoom' | 'calendly';
+export type IntegrationType = 'google_calendar' | 'zoom';
 
 export interface Integration {
   id?: string;

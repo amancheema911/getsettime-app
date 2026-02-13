@@ -45,7 +45,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       user_id: userId,
       role: meta.role ?? null,
-      workspace_id: meta.workspace_id ?? null
+      workspace_id: meta.workspace_id ?? null,
+      deactivated: meta.deactivated === true
     });
   } catch (err: any) {
     console.error('Verification error:', err);

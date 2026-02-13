@@ -15,7 +15,6 @@ export async function GET(req: Request) {
     const status = {
       google_calendar: integrations.some(i => i.type === 'google_calendar'),
       zoom: integrations.some(i => i.type === 'zoom'),
-      calendly: integrations.some(i => i.type === 'calendly'),
     };
 
     return NextResponse.json({ integrations: status });

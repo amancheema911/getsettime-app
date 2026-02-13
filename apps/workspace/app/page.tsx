@@ -54,11 +54,11 @@ const Dashboard: React.FC = () => {
               <h1 className="text-3xl font-bold text-white">Welcome back, {userName}</h1>
               <span className="animate-wave text-2xl inline-block">👋</span>
             </div>
-            <p className="text-white text-sm">Here what happening with your account today.</p>
+            <p className="text-white text-sm">Here's what's happening with your account today.</p>
           </div>
           <div className="flex flex-wrap gap-4">
-            <Link href="/event-type" className="px-4 py-2 rounded-md font-medium bg-white text-indigo-600 transition">Create Event</Link>
-            <Link href="/bookings" className="px-4 py-2 rounded-md font-medium bg-white text-indigo-600 transition">View Bookings</Link>
+            <Link href="/event-type" className="px-4 py-2 rounded-lg text-sm font-medium bg-white text-indigo-600 hover:bg-transparent hover:border-white hover:text-white border border-white transition">Create Event</Link>
+            <Link href="/bookings" className="px-4 py-2 rounded-lg text-sm font-medium bg-white text-indigo-600 hover:bg-transparent hover:border-white hover:text-white border border-white transition">View Bookings</Link>
           </div>
         </div>
       </section>

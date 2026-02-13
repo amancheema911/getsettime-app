@@ -12,7 +12,12 @@ export type Booking = {
   location: Record<string, unknown> | null;
   payment_id: string | null;
   metadata: Record<string, unknown> | null;
+  service_provider_id: string | null;
+  department_id: string | null;
   created_at: string;
   updated_at: string;
+  event_types?: {
+    title: string;
+  } | null;
 };
 

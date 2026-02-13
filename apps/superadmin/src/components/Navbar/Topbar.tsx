@@ -124,7 +124,7 @@ export default function Topbar({ toggleSidebar, isSidebarOpen }: TopbarProps) {
           <div className="relative">
             <button id="profile-button" onClick={(e) => { e.stopPropagation(); setIsProfileMenuOpen(!isProfileMenuOpen); setIsNotificationOpen(false);}} className="flex items-center space-x-2 cursor-pointer focus:outline-none" aria-expanded={isProfileMenuOpen} aria-haspopup="true">
               <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                <span className="text-sm font-medium">SA</span>
+                <span className="text-sm font-medium">{user?.email ? user.email.charAt(0).toUpperCase() : "SA"}</span>
               </div>
             </button>
 
@@ -149,4 +149,3 @@ export default function Topbar({ toggleSidebar, isSidebarOpen }: TopbarProps) {
     </header>
   );
 }
-

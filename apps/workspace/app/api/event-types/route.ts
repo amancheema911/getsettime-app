@@ -1,57 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@app/db';
 import { createClient } from '@supabase/supabase-js';
 
-async function getUserFromRequest(req: NextRequest) {
+/**
+ * Creates an authenticated Supabase client using the anon key (respects RLS)
+ * Sets the auth session from the request's bearer token
+ */
+function createAuthenticatedClient(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
-  const token = authHeader?.replace('Bearer ', '') || null;
+  const token = authHeader?.replace('Bearer ', '');
 
   if (!token) {
     return null;
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     return null;
   }
 
-  const verifyClient = createClient(supabaseUrl, supabaseAnonKey, {
+  // Create client with anon key - respects RLS policies
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
   });
 
-  const { data: { user }, error } = await verifyClient.auth.getUser(token);
-  if (error || !user) {
-    return null;
-  }
-
-  return user;
+  return { supabase, token };
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getUserFromRequest(req);
-    if (!user) {
+    const result = createAuthenticatedClient(req);
+    if (!result) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const workspaceId = user.user_metadata?.workspace_id;
-    const ownerId = user.id;
+    const { supabase, token } = result;
 
-    if (!workspaceId) {
-      return NextResponse.json({ error: 'Workspace ID not found' }, { status: 400 });
+    // Verify auth - will fail if token is invalid
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createSupabaseServerClient();
+    // RLS automatically filters by workspace_id and owner_id from JWT
     const { data, error } = await supabase
       .from('event_types')
       .select('*')
-      .eq('workspace_id', workspaceId)
-      .eq('owner_id', ownerId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -68,8 +71,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getUserFromRequest(req);
-    if (!user) {
+    const result = createAuthenticatedClient(req);
+    if (!result) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { supabase, token } = result;
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -81,18 +91,16 @@ export async function POST(req: NextRequest) {
     }
 
     const workspaceId = user.user_metadata?.workspace_id;
-    const ownerId = user.id;
-
     if (!workspaceId) {
       return NextResponse.json({ error: 'Workspace ID not found' }, { status: 400 });
     }
 
-    const supabase = createSupabaseServerClient();
+    // RLS validates workspace_id matches JWT; we provide it for INSERT WITH CHECK policy
     const { data, error } = await supabase
       .from('event_types')
       .insert({
         workspace_id: workspaceId,
-        owner_id: ownerId,
+        owner_id: user.id,
         title: title.trim(),
         slug: title.toLowerCase().replace(/\s+/g, '-'),
         duration_minutes: duration_minutes && duration_minutes.toString().trim() ? parseInt(duration_minutes.toString(), 10) : null,
@@ -120,8 +128,15 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const user = await getUserFromRequest(req);
-    if (!user) {
+    const result = createAuthenticatedClient(req);
+    if (!result) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { supabase, token } = result;
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -136,14 +151,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 
-    const workspaceId = user.user_metadata?.workspace_id;
-    const ownerId = user.id;
-
-    if (!workspaceId) {
-      return NextResponse.json({ error: 'Workspace ID not found' }, { status: 400 });
-    }
-
-    const supabase = createSupabaseServerClient();
+    // RLS automatically filters by workspace_id and owner_id from JWT
     const { data, error } = await supabase
       .from('event_types')
       .update({
@@ -152,8 +160,6 @@ export async function PATCH(req: NextRequest) {
         duration_minutes: duration_minutes && duration_minutes.toString().trim() ? parseInt(duration_minutes.toString(), 10) : null,
       })
       .eq('id', id)
-      .eq('workspace_id', workspaceId)
-      .eq('owner_id', ownerId)
       .select()
       .single();
 
@@ -175,8 +181,15 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = await getUserFromRequest(req);
-    if (!user) {
+    const result = createAuthenticatedClient(req);
+    if (!result) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { supabase, token } = result;
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -187,20 +200,11 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Event type ID is required' }, { status: 400 });
     }
 
-    const workspaceId = user.user_metadata?.workspace_id;
-    const ownerId = user.id;
-
-    if (!workspaceId) {
-      return NextResponse.json({ error: 'Workspace ID not found' }, { status: 400 });
-    }
-
-    const supabase = createSupabaseServerClient();
+    // RLS automatically filters by workspace_id and owner_id from JWT
     const { error } = await supabase
       .from('event_types')
       .delete()
-      .eq('id', id)
-      .eq('workspace_id', workspaceId)
-      .eq('owner_id', ownerId);
+      .eq('id', id);
 
     if (error) {
       console.error('Error deleting event type:', error);

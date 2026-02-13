@@ -49,3 +49,6 @@ supabase/.env
 # Rules
 .cursor
 .rules
+apps/workspace/test-smtp.js
+apps/workspace/EMAIL_CONFIGURATION.md
+apps/workspace/EMAIL_DEBUGGING_GUIDE.md

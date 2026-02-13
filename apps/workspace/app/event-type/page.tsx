@@ -419,26 +419,11 @@ export default function EventTypes() {
                 </div>
 
                 <div className="mt-5 flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => handleEdit(item)}
-                    className="cursor-pointer inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10 hover:bg-indigo-100"
-                  >
-                    Edit
-                  </button>
+                  <button onClick={() => handleEdit(item)} className="cursor-pointer inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10 hover:bg-indigo-100">Edit</button>
 
-                  <button
-                    onClick={() => navigator.clipboard.writeText(`${window.location.origin}/event/${item.id}`)}
-                    className="cursor-pointer inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 inset-ring inset-ring-green-600/20 hover:bg-gray-100"
-                  >
-                    Copy link
-                  </button>
+                  <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/event/${item.id}`)} className="cursor-pointer inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 inset-ring inset-ring-green-600/20 hover:bg-gray-100">Copy link</button>
 
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="cursor-pointer inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10 hover:bg-red-100"
-                  >
-                    Delete
-                  </button>
+                  <button onClick={() => handleDelete(item.id)} className="cursor-pointer inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10 hover:bg-red-100">Delete</button>
                 </div>
               </div>
             </div>

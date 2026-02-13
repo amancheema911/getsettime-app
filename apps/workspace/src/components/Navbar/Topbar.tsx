@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "../../providers/AuthProvider";
+import { useWorkspaceSettings } from "../../hooks/useWorkspaceSettings";
 
 interface TopbarProps {
   toggleSidebar: () => void;
@@ -17,6 +18,11 @@ export default function Topbar({ toggleSidebar, isSidebarOpen }: TopbarProps) {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
+  const { general, loading: loadingSettings } = useWorkspaceSettings();
+
+  const logoUrl = general.logoUrl || "/getsettime-logo.svg";
+  const accountName = general.accountName || "GetSetTime";
+  const isExternalUrl = logoUrl?.startsWith('http://') || logoUrl?.startsWith('https://');
   
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -75,8 +81,31 @@ export default function Topbar({ toggleSidebar, isSidebarOpen }: TopbarProps) {
           </button>
           
           <div className="lg:hidden ml-2">
-            <Link href="/">
-              <Image src="/getsettime-logo.svg" alt="GetSetTime Logo" width={120} height={30} className="h-8 w-auto"/>
+            <Link href="/" className="flex items-center gap-2">
+              {!loadingSettings && (
+                <>
+                  {isExternalUrl ? (
+                    <img 
+                      src={logoUrl} 
+                      alt={`${accountName} Logo`} 
+                      className="h-8 w-auto object-contain"
+                    />
+                  ) : (
+                    <Image 
+                      src={logoUrl} 
+                      alt={`${accountName} Logo`} 
+                      width={120} 
+                      height={30} 
+                      className="h-8 w-auto"
+                    />
+                  )}
+                  {accountName && accountName !== "GetSetTime" && (
+                    <span className="text-xl font-bold text-blue-600">
+                      {accountName}
+                    </span>
+                  )}
+                </>
+              )}
             </Link>
           </div>
         </div>

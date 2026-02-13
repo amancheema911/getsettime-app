@@ -12,36 +12,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
 /* Responsive table */
-@media screen and (max-width: 1024px) {
+@media screen and (max-width: 1023px) {
   table {
     border: 0;
   }
@@ -80,5 +52,8 @@ body {
 
   table td:last-child {
     border-bottom: 0;
+  }
+  .item-align-end {
+    justify-content: flex-end;
   }
 }

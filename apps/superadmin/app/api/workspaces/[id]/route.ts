@@ -1,5 +1,63 @@
 import { NextResponse } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseServer } from '@/lib/supabaseServer';
+
+type JsonObject = Record<string, unknown>;
+
+const isObject = (value: unknown): value is JsonObject =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const mergeSettings = (existing: JsonObject, updates: JsonObject): JsonObject => {
+  const merged: JsonObject = { ...existing };
+
+  Object.entries(updates).forEach(([key, value]) => {
+    if (isObject(value)) {
+      const current = isObject(existing[key]) ? (existing[key] as JsonObject) : {};
+      merged[key] = { ...current, ...value };
+    } else {
+      merged[key] = value;
+    }
+  });
+
+  return merged;
+};
+
+async function upsertConfiguration(
+  supabase: SupabaseClient,
+  workspaceId: string,
+  updates: JsonObject
+) {
+  const { data: existingConfig, error: fetchError } = await supabase
+    .from('configurations')
+    .select('id, settings')
+    .eq('workspace_id', workspaceId)
+    .maybeSingle();
+
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    throw new Error(fetchError.message);
+  }
+
+  const mergedSettings = mergeSettings(existingConfig?.settings ?? {}, updates);
+
+  const result = existingConfig
+    ? await supabase
+        .from('configurations')
+        .update({ settings: mergedSettings })
+        .eq('workspace_id', workspaceId)
+        .select('settings')
+        .single()
+    : await supabase
+        .from('configurations')
+        .insert({ workspace_id: workspaceId, settings: mergedSettings })
+        .select('settings')
+        .single();
+
+  if (result.error) {
+    throw new Error(result.error.message);
+  }
+
+  return result.data?.settings;
+}
 
 // PUT - Update a workspace
 export async function PUT(
@@ -56,8 +114,6 @@ export async function PUT(
       .update({
         name,
         slug,
-        primary_color: primary_color || null,
-        accent_color: accent_color || null,
         logo_url: logo_url || null,
         billing_customer_id: billing_customer_id || null,
       })
@@ -74,6 +130,19 @@ export async function PUT(
         return NextResponse.json({ error: 'Slug already exists' }, { status: 409 });
       }
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (data?.id) {
+      const generalSettings: JsonObject = {
+        general: {
+          accountName: name,
+          primaryColor: primary_color || null,
+          accentColor: accent_color || null,
+          logoUrl: logo_url || null,
+        },
+      };
+
+      await upsertConfiguration(supabaseServer, data.id, generalSettings);
     }
 
     console.log('Workspace updated successfully. Saved logo_url:', data?.logo_url);

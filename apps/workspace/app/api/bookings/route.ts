@@ -1,41 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@app/db';
 import { createClient } from '@supabase/supabase-js';
 
-async function getUserFromRequest(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.replace('Bearer ', '') || null;
+type DayName = "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat";
 
-  if (!token) {
-    return null;
-  }
+interface BreakTime {
+  id: string;
+  start: string;
+  end: string;
+}
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+interface DaySchedule {
+  enabled: boolean;
+  startTime: string;
+  endTime: string;
+  breaks: BreakTime[];
+}
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return null;
-  }
-
-  const verifyClient = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-
-  const { data: { user }, error } = await verifyClient.auth.getUser(token);
-  if (error || !user) {
-    return null;
-  }
-
-  return user;
+interface AvailabilitySettings {
+  timesheet?: Record<DayName, DaySchedule>;
+  individual?: Record<string, boolean>;
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getUserFromRequest(req);
-    if (!user) {
+    const authHeader = req.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '') || null;
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+    // Create client with user's JWT token - this respects RLS
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -49,25 +57,92 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '10', 10);
     const search = searchParams.get('search') || '';
+    const date = searchParams.get('date') || '';
+    const startDate = searchParams.get('start_date') || '';
+    const endDate = searchParams.get('end_date') || '';
+    const status = searchParams.get('status') || '';
+    const eventTypeId = searchParams.get('event_type_id') || '';
+    const serviceProviderId = searchParams.get('service_provider_id') || '';
+    const departmentId = searchParams.get('department_id') || '';
     const offset = (page - 1) * limit;
-
-    const supabase = createSupabaseServerClient();
     
-    // Build query with search filter
+    // Build query with search filter and event_types join
     let query = supabase
       .from('bookings')
-      .select('*', { count: 'exact' })
+      .select('*, event_types(title)', { count: 'exact' })
       .eq('workspace_id', workspaceId)
-      .order('created_at', { ascending: false });
+      .order('start_at', { ascending: false });
 
     // Apply search filter if provided
     if (search.trim()) {
       query = query.ilike('invitee_name', `%${search.trim()}%`);
     }
 
-    // Apply pagination
-    const { data, error, count } = await query
-      .range(offset, offset + limit - 1);
+    // Apply date filter if provided (fetch bookings for a specific date)
+    if (date) {
+      const dateObj = new Date(date);
+      const startOfDay = new Date(dateObj);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(dateObj);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      query = query
+        .gte('start_at', startOfDay.toISOString())
+        .lte('start_at', endOfDay.toISOString());
+    }
+    
+    // Apply date range filter if provided (fetch bookings within a date range)
+    // This is used for availability checking across multiple dates
+    if (startDate && endDate) {
+      const startDateObj = new Date(startDate);
+      const startOfRange = new Date(startDateObj);
+      startOfRange.setHours(0, 0, 0, 0);
+      
+      const endDateObj = new Date(endDate);
+      const endOfRange = new Date(endDateObj);
+      endOfRange.setHours(23, 59, 59, 999);
+      
+      query = query
+        .gte('start_at', startOfRange.toISOString())
+        .lte('start_at', endOfRange.toISOString());
+    }
+
+    // Apply status filter if provided
+    if (status.trim()) {
+      query = query.eq('status', status.trim());
+    }
+
+    // Apply event type filter if provided
+    if (eventTypeId.trim()) {
+      query = query.eq('event_type_id', eventTypeId.trim());
+    }
+
+    // Apply service provider filter if provided
+    if (serviceProviderId.trim()) {
+      query = query.eq('service_provider_id', serviceProviderId.trim());
+    }
+
+    // Apply department filter if provided
+    if (departmentId.trim()) {
+      query = query.eq('department_id', departmentId.trim());
+    }
+
+    // Apply pagination only if not fetching for date range availability
+    // Date range queries (used for availability checking) should return all bookings without pagination
+    let data, error, count;
+    if (startDate && endDate) {
+      // Skip pagination for date range queries (availability checking)
+      const result = await query;
+      data = result.data;
+      error = result.error;
+      count = result.data?.length || 0;
+    } else {
+      // Apply pagination for standard queries
+      const result = await query.range(offset, offset + limit - 1);
+      data = result.data;
+      error = result.error;
+      count = result.count;
+    }
 
     if (error) {
       console.error('Error fetching bookings:', error);
@@ -92,14 +167,35 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getUserFromRequest(req);
-    if (!user) {
+    const authHeader = req.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '') || null;
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+    // Create client with user's JWT token - this respects RLS
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
     const {
       event_type_id,
+      service_provider_id,
+      department_id,
       invitee_name,
       invitee_email,
       invitee_phone,
@@ -126,12 +222,130 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Workspace ID not found' }, { status: 400 });
     }
 
-    const supabase = createSupabaseServerClient();
+    // Validate availability before creating booking
+    const startDate = new Date(start_at);
+    const endDate = end_at ? new Date(end_at) : new Date(startDate);
+
+    // Validate that the booking time is not in the past
+    const now = new Date();
+    if (startDate < now) {
+      return NextResponse.json({ 
+        error: 'Cannot book a time slot in the past. Please select a future time.' 
+      }, { status: 400 });
+    }
+    
+    // Fetch availability settings
+    const { data: configData } = await supabase
+      .from('configurations')
+      .select('settings')
+      .eq('workspace_id', workspaceId)
+      .single();
+
+    const availabilityData: AvailabilitySettings = configData?.settings?.availability || {};
+    
+    // Get provider-specific availability if service_provider_id is provided
+    let availability: AvailabilitySettings = availabilityData;
+    if (service_provider_id && availabilityData) {
+      const providers = (availabilityData as any).providers || {};
+      const providerOverrides = providers[service_provider_id] || {};
+      
+      // Merge general availability with provider-specific overrides
+      const generalTimesheet = availabilityData.timesheet;
+      const generalIndividual = availabilityData.individual;
+      const finalTimesheet = generalTimesheet ? { ...generalTimesheet, ...(providerOverrides.timesheet || {}) } : providerOverrides.timesheet;
+      const finalIndividual = { ...(generalIndividual || {}), ...(providerOverrides.individual || {}) };
+      
+      availability = {
+        timesheet: finalTimesheet,
+        individual: finalIndividual,
+      };
+    }
+    
+    // Check if the day is enabled in timesheet
+    const dayName: DayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][startDate.getDay()] as DayName;
+    const daySchedule = availability.timesheet?.[dayName];
+    
+    if (!daySchedule || !daySchedule.enabled) {
+      return NextResponse.json({ 
+        error: 'This time slot is not available. The selected day is not enabled in availability settings.' 
+      }, { status: 400 });
+    }
+
+    // Check if time is within available hours
+    const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
+    const endMinutes = endDate.getHours() * 60 + endDate.getMinutes();
+    const scheduleStart = parseInt(daySchedule.startTime.split(':')[0]) * 60 + parseInt(daySchedule.startTime.split(':')[1]);
+    const scheduleEnd = parseInt(daySchedule.endTime.split(':')[0]) * 60 + parseInt(daySchedule.endTime.split(':')[1]);
+    
+    if (startMinutes < scheduleStart || endMinutes > scheduleEnd) {
+      return NextResponse.json({ 
+        error: 'This time slot is outside available hours.' 
+      }, { status: 400 });
+    }
+
+    // Check if time conflicts with breaks
+    if (daySchedule.breaks && daySchedule.breaks.length > 0) {
+      const conflictsWithBreak = daySchedule.breaks.some((breakTime) => {
+        const breakStart = parseInt(breakTime.start.split(':')[0]) * 60 + parseInt(breakTime.start.split(':')[1]);
+        const breakEnd = parseInt(breakTime.end.split(':')[0]) * 60 + parseInt(breakTime.end.split(':')[1]);
+        return startMinutes < breakEnd && endMinutes > breakStart;
+      });
+      
+      if (conflictsWithBreak) {
+        return NextResponse.json({ 
+          error: 'This time slot conflicts with a break time.' 
+        }, { status: 400 });
+      }
+    }
+
+    // Check individual overrides (format: YYYY-MM-DD-H)
+    const dateStr = startDate.toISOString().split('T')[0];
+    const individualKey = `${dateStr}-${startDate.getHours()}`;
+    const individualOverride = availability.individual?.[individualKey];
+    
+    if (individualOverride === false) {
+      return NextResponse.json({ 
+        error: 'This time slot has been marked as unavailable.' 
+      }, { status: 400 });
+    }
+
+    // Check for existing booking conflicts for the same service provider
+    // A booking conflicts if: new_start < existing_end AND new_end > existing_start
+    let conflictQuery = supabase
+      .from('bookings')
+      .select('start_at, end_at')
+      .eq('workspace_id', workspaceId)
+      .neq('status', 'cancelled')
+      .gte('start_at', new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).toISOString())
+      .lte('start_at', new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 1).toISOString());
+    
+    // Only check conflicts for the same service provider
+    if (service_provider_id) {
+      conflictQuery = conflictQuery.eq('service_provider_id', service_provider_id);
+    }
+    
+    const { data: existingBookings } = await conflictQuery;
+
+    if (existingBookings && existingBookings.length > 0) {
+      const hasConflict = existingBookings.some((booking) => {
+        const bookingStart = new Date(booking.start_at);
+        const bookingEnd = booking.end_at ? new Date(booking.end_at) : new Date(bookingStart);
+        return startDate < bookingEnd && endDate > bookingStart;
+      });
+
+      if (hasConflict) {
+        return NextResponse.json({ 
+          error: 'This time slot is already booked. Please select another time.' 
+        }, { status: 400 });
+      }
+    }
     const { data, error } = await supabase
       .from('bookings')
       .insert({
         workspace_id: workspaceId,
         event_type_id: event_type_id || null,
+        service_provider_id: service_provider_id || null,
+        department_id: department_id || null,
         host_user_id: hostUserId,
         invitee_name: invitee_name.trim(),
         invitee_email: invitee_email?.trim() || null,
@@ -151,6 +365,144 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Build notification context (names may be missing; fall back to "Not assigned")
+    let providerEmail: string | undefined;
+    let providerName: string | undefined;
+    let departmentName: string | undefined;
+    let eventTypeName = 'Appointment';
+    let durationMinutes = 30;
+
+    try {
+      if (event_type_id) {
+        const { data: eventTypeData } = await supabase
+          .from('event_types')
+          .select('title, duration_minutes')
+          .eq('id', event_type_id)
+          .single();
+
+        if (eventTypeData) {
+          eventTypeName = eventTypeData.title || eventTypeName;
+          durationMinutes = eventTypeData.duration_minutes || durationMinutes;
+        }
+      }
+    } catch (eventTypeErr) {
+      console.error('Error fetching event type details:', eventTypeErr);
+    }
+
+    try {
+      if (department_id) {
+        const { data: departmentData } = await supabase
+          .from('departments')
+          .select('name')
+          .eq('id', department_id)
+          .single();
+        departmentName = departmentData?.name || undefined;
+      }
+    } catch (deptErr) {
+      console.error('Error fetching department details:', deptErr);
+    }
+
+    try {
+      if (service_provider_id) {
+        const supabaseServiceRoleKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
+        if (!supabaseServiceRoleKey) {
+          console.warn('Service role key not configured, cannot fetch provider details for notifications');
+        } else {
+          const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+            auth: { autoRefreshToken: false, persistSession: false },
+          });
+
+          const { data: { user: providerUser }, error: providerError } =
+            await adminClient.auth.admin.getUserById(service_provider_id);
+
+          if (providerError) {
+            console.error('Error fetching service provider:', providerError);
+          } else if (providerUser) {
+            providerEmail = providerUser.email || undefined;
+            providerName = providerUser.user_metadata?.name || providerUser.email?.split('@')[0] || 'Service Provider';
+          }
+        }
+      }
+    } catch (providerErr) {
+      console.error('Error resolving provider details:', providerErr);
+    }
+
+    const providerLabel = providerName?.trim() ? providerName : (service_provider_id ? 'Assigned (details unavailable)' : 'Not assigned');
+    const departmentLabel = departmentName?.trim() ? departmentName : (department_id ? 'Assigned (details unavailable)' : 'Not assigned');
+
+    // Send email notifications after successful booking creation (best-effort)
+    try {
+      if (invitee_email && invitee_email.trim()) {
+        const { sendBookingConfirmationEmails } = await import('@/lib/email-service');
+
+        const emailData = {
+          inviteeName: invitee_name.trim(),
+          inviteeEmail: invitee_email.trim(),
+          providerName: providerLabel,
+          providerEmail: providerEmail,
+          eventTypeName,
+          departmentName: departmentLabel,
+          startTime: start_at,
+          endTime: end_at || start_at,
+          duration: durationMinutes,
+          notes: metadata?.notes || undefined,
+        };
+
+        const emailResult = await sendBookingConfirmationEmails(emailData);
+        console.log('Email notifications:', {
+          userEmailSent: emailResult.userEmailSent,
+          providerEmailSent: emailResult.providerEmailSent,
+          errors: emailResult.errors,
+        });
+      }
+    } catch (emailError) {
+      console.error('Error sending email notifications:', emailError);
+    }
+
+    // Send WhatsApp notification (best-effort; don't fail booking)
+    try {
+      if (invitee_phone && invitee_phone.trim()) {
+        const origin = new URL(req.url).origin;
+        const when = new Date(start_at).toLocaleString('en-US', {
+          weekday: 'short',
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZoneName: 'short',
+        });
+
+        // const message = [
+        //   'Booking confirmed',
+        //   `Event: ${eventTypeName}`,
+        //   `Department: ${departmentLabel}`,
+        //   `Service Provider: ${providerLabel}`,
+        //   `When: ${when}`,
+        //   metadata?.notes ? `Notes: ${String(metadata.notes)}` : '',
+        // ]
+
+        const message = [
+          'Booking confirmed' + ' ' + `Event: ${eventTypeName}` + ' ' + `Department: ${departmentLabel}` + ' ' + `Service Provider: ${providerLabel}` + ' ' + `When: ${when}` + ' ' + (metadata?.notes ? `Notes: ${String(metadata.notes)}` : ''),
+        ]
+          .filter((s) => s && String(s).trim().length > 0)
+          .join('\n');
+
+        await fetch(`${origin}/api/whatsapp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: invitee_name?.trim() || 'Invitee',
+            email: invitee_email?.trim() || null,
+            phone: invitee_phone?.trim(),
+            message,
+          }),
+        });
+      }
+    } catch (whatsappError) {
+      console.error('Error sending WhatsApp notification:', whatsappError);
+    }
+
     return NextResponse.json({ data });
   } catch (err: unknown) {
     const error = err as Error;
@@ -161,8 +513,27 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const user = await getUserFromRequest(req);
-    if (!user) {
+    const authHeader = req.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '') || null;
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+    // Create client with user's JWT token - this respects RLS
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -170,6 +541,8 @@ export async function PATCH(req: NextRequest) {
     const {
       id,
       event_type_id,
+      service_provider_id,
+      department_id,
       invitee_name,
       invitee_email,
       invitee_phone,
@@ -193,6 +566,8 @@ export async function PATCH(req: NextRequest) {
 
     const updateData: Record<string, unknown> = {};
     if (event_type_id !== undefined) updateData.event_type_id = event_type_id || null;
+    if (service_provider_id !== undefined) updateData.service_provider_id = service_provider_id || null;
+    if (department_id !== undefined) updateData.department_id = department_id || null;
     if (invitee_name !== undefined) updateData.invitee_name = invitee_name?.trim() || null;
     if (invitee_email !== undefined) updateData.invitee_email = invitee_email?.trim() || null;
     if (invitee_phone !== undefined) updateData.invitee_phone = invitee_phone?.trim() || null;
@@ -202,8 +577,6 @@ export async function PATCH(req: NextRequest) {
     if (location !== undefined) updateData.location = location || null;
     if (payment_id !== undefined) updateData.payment_id = payment_id || null;
     if (metadata !== undefined) updateData.metadata = metadata || null;
-
-    const supabase = createSupabaseServerClient();
     const { data, error } = await supabase
       .from('bookings')
       .update(updateData)
@@ -231,8 +604,27 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = await getUserFromRequest(req);
-    if (!user) {
+    const authHeader = req.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '') || null;
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+    // Create client with user's JWT token - this respects RLS
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -248,8 +640,6 @@ export async function DELETE(req: NextRequest) {
     if (!workspaceId) {
       return NextResponse.json({ error: 'Workspace ID not found' }, { status: 400 });
     }
-
-    const supabase = createSupabaseServerClient();
     const { error } = await supabase
       .from('bookings')
       .delete()

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/auth-helpers';
-import { saveIntegration } from '@/lib/integrations';
+import { IntegrationType, saveIntegration } from '@/lib/integrations';
 
 export async function GET(req: Request) {
   try {
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     if (calendlyApiKey && calendlySchedulingLink) {
       const saved = await saveIntegration({
         user_id: userId,
-        type: 'calendly',
+        type: 'calendly' as IntegrationType,
         access_token: calendlyApiKey,
         metadata: {
           scheduling_link: calendlySchedulingLink,

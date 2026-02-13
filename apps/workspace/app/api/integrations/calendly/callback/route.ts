@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { saveIntegration } from '@/lib/integrations';
+import { IntegrationType, saveIntegration } from '@/lib/integrations';
 import { getUserIdFromRequest } from '@/lib/auth-helpers';
 import { getCalendlyUser } from '@/lib/calendlyClient';
 import axios from 'axios';
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
 
       const saved = await saveIntegration({
         user_id: userId,
-        type: 'calendly',
+        type: 'calendly' as IntegrationType,
         access_token: calendlyApiKey,
         metadata: {
           scheduling_link: calendlySchedulingLink,
@@ -109,7 +109,7 @@ export async function GET(req: Request) {
       const expiresAt = expires_in ? Date.now() / 1000 + expires_in : undefined;
       const saved = await saveIntegration({
         user_id: userId,
-        type: 'calendly',
+        type: 'calendly' as IntegrationType,
         access_token,
         refresh_token: refresh_token || undefined,
         expires_at: expiresAt,

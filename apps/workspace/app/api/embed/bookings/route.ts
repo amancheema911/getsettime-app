@@ -461,7 +461,7 @@ export async function POST(req: NextRequest) {
           startTime: start_at,
           endTime: end_at || start_at,
           duration: durationMinutes,
-          notes: metadataPayload.notes || undefined,
+          notes: metadataPayload.notes ? String(metadataPayload.notes) : undefined,
         };
 
         const emailResult = await sendBookingConfirmationEmails(emailData);

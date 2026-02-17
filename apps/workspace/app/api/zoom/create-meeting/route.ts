@@ -1,26 +1,27 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
-import { getUserIdFromRequest } from '@/lib/auth-helpers';
+import { getAuthFromRequest } from '@/lib/auth-helpers';
+import { getIntegration } from '@/lib/integrations';
 
 export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get('authorization');
-    const userId = await getUserIdFromRequest(req);
+    const auth = await getAuthFromRequest(req);
 
-    if (!userId && !authHeader) {
+    if (!auth?.userId && !authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
     const { topic, start_time, duration, timezone, settings } = body;
 
-    // Get access token from header or from stored integration
     let accessToken = authHeader?.replace('Bearer ', '');
-    
+
     if (!accessToken) {
-      // If no token in header, get from integration
-      const { getIntegration } = await import('@/lib/integrations');
-      const integration = await getIntegration(userId!, 'zoom');
+      if (!auth?.workspaceId) {
+        return NextResponse.json({ error: 'No workspace found' }, { status: 400 });
+      }
+      const integration = await getIntegration(auth.workspaceId, 'zoom');
       if (!integration) {
         return NextResponse.json({ error: 'Zoom not connected' }, { status: 400 });
       }

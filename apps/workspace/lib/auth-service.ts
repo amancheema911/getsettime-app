@@ -99,49 +99,116 @@ export async function storeCallbackToken(
   }
 }
 
-export interface SaveGoogleIntegrationParams {
+export interface UpdateUserGoogleMetadataParams {
   userId: string;
+  google_calendar_sync: boolean;
+  google_id?: string;
+  google_email?: string;
+  supabaseAdmin: SupabaseClient;
+}
+
+/**
+ * Update user metadata with Google Calendar sync info (same as registration flow)
+ */
+export async function updateUserGoogleMetadata(
+  params: UpdateUserGoogleMetadataParams
+): Promise<{ error: string | null }> {
+  const { userId, google_calendar_sync, google_id, google_email, supabaseAdmin } = params;
+
+  try {
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const existingMeta = (userData?.user?.user_metadata ?? {}) as Record<string, unknown>;
+
+    const meta: Record<string, unknown> = {
+      ...existingMeta,
+      google_calendar_sync,
+    };
+    if (google_calendar_sync && google_id != null) meta.google_id = google_id;
+    if (google_calendar_sync && google_email != null) meta.google_email = google_email;
+    if (!google_calendar_sync) {
+      delete meta.google_id;
+      delete meta.google_email;
+    }
+
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      user_metadata: meta,
+    });
+
+    if (updateError) {
+      console.warn('Failed to update user metadata:', updateError);
+      return { error: 'Failed to update metadata' };
+    }
+    return { error: null };
+  } catch (err) {
+    console.error('updateUserGoogleMetadata error:', err);
+    return {
+      error: err instanceof Error ? err.message : 'Unknown error',
+    };
+  }
+}
+
+export interface SaveGoogleIntegrationParams {
+  workspaceId: number;
   accessToken: string;
   refreshToken: string;
   expiresAt?: number;
   scope?: string;
   email: string;
+  googleId?: string;
   supabaseAdmin: SupabaseClient;
 }
 
 /**
- * Save Google Calendar integration
+ * Save Google Calendar integration (workspace-scoped schema)
  */
 export async function saveGoogleCalendarIntegration(
   params: SaveGoogleIntegrationParams
 ): Promise<{ error: string | null }> {
-  const { userId, accessToken, refreshToken, expiresAt, scope, email, supabaseAdmin } = params;
+  const { workspaceId, accessToken, refreshToken, expiresAt, scope, email, googleId, supabaseAdmin } = params;
 
   try {
-    const { error: integrationError } = await supabaseAdmin
-      .from('integrations')
-      .upsert(
-        {
-          user_id: userId,
-          type: 'google_calendar',
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          expires_at: expiresAt ? Math.floor(expiresAt / 1000) : undefined,
-          metadata: { scope, email },
-        },
-        { onConflict: 'user_id,type' }
-      );
+    const credentials = {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_at: expiresAt != null ? Math.floor(expiresAt / 1000) : undefined,
+    };
+    const config = { scope, email };
 
-    if (integrationError) {
-      console.warn('Failed to save Google Calendar integration:', integrationError);
-      return { error: 'Failed to save calendar integration' };
+    const { data: existing } = await supabaseAdmin
+      .from('integrations')
+      .select('id')
+      .eq('workspace_id', workspaceId)
+      .eq('provider', 'google_calendar')
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await supabaseAdmin
+        .from('integrations')
+        .update({ provider_user_id: googleId ?? null, credentials, config })
+        .eq('id', existing.id);
+
+      if (error) {
+        console.warn('Failed to save Google Calendar integration:', error);
+        return { error: 'Failed to save calendar integration' };
+      }
+    } else {
+      const { error } = await supabaseAdmin.from('integrations').insert({
+        workspace_id: workspaceId,
+        provider: 'google_calendar',
+        provider_user_id: googleId ?? null,
+        credentials,
+        config,
+      });
+
+      if (error) {
+        console.warn('Failed to save Google Calendar integration:', error);
+        return { error: 'Failed to save calendar integration' };
+      }
     }
 
     return { error: null };
   } catch (err) {
     console.error('saveGoogleCalendarIntegration error:', err);
-    return {
-      error: err instanceof Error ? err.message : 'Unknown error',
-    };
+    return { error: err instanceof Error ? err.message : 'Unknown error' };
   }
 }

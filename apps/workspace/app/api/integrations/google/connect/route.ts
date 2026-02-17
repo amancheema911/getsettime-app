@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
 import { getGoogleOAuthClient } from '@/lib/googleClient';
-import { getUserIdFromRequest } from '@/lib/auth-helpers';
+import { getAuthFromRequest } from '@/lib/auth-helpers';
 
 export async function GET(req: Request) {
   try {
-    const userId = await getUserIdFromRequest(req);
-    
-    if (!userId) {
+    const auth = await getAuthFromRequest(req);
+
+    if (!auth?.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!auth.workspaceId) {
+      return NextResponse.json(
+        { error: 'Workspace not found. Please complete onboarding first.' },
+        { status: 400 }
+      );
     }
 
     // Construct redirect URI dynamically from request URL
@@ -26,15 +32,18 @@ export async function GET(req: Request) {
 
     const oauth2Client = getGoogleOAuthClient(redirectUri);
     const scopes = [
+      'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/calendar',
       'https://www.googleapis.com/auth/calendar.events',
     ];
+
+    const state = Buffer.from(JSON.stringify({ userId: auth.userId, workspaceId: auth.workspaceId })).toString('base64');
 
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
       prompt: 'consent',
-      state: userId, // Pass user ID in state for verification
+      state,
       include_granted_scopes: true,
     });
 

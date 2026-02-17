@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { appUrl } from '@/lib/app-url';
 
 /**
  * Creates an authenticated Supabase client using the anon key (respects RLS)
@@ -140,9 +141,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create invite' }, { status: 500 });
     }
 
-    // Generate invite URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const inviteUrl = `${baseUrl}/invite-accept?token=${inviteToken}`;
+    const inviteUrl = appUrl(`/invite-accept?token=${inviteToken}`, req);
 
     // Send email with invite link using Nodemailer
     try {

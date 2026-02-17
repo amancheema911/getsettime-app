@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
-import { getUserIdFromRequest } from '@/lib/auth-helpers';
+import { getAuthFromRequest } from '@/lib/auth-helpers';
 
 export async function GET(req: Request) {
   try {
-    const userId = await getUserIdFromRequest(req);
-    
-    if (!userId) {
+    const auth = await getAuthFromRequest(req);
+
+    if (!auth?.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!auth.workspaceId) {
+      return NextResponse.json(
+        { error: 'Workspace not found. Please complete onboarding first.' },
+        { status: 400 }
+      );
     }
 
     const clientId = process.env.ZOOM_CLIENT_ID;
@@ -16,7 +22,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Zoom client ID not configured' }, { status: 500 });
     }
 
-    const authUrl = `https://zoom.us/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${userId}`;
+    const state = Buffer.from(JSON.stringify({ userId: auth.userId, workspaceId: auth.workspaceId })).toString('base64');
+    const authUrl = `https://zoom.us/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
 
     return NextResponse.json({ authUrl });
   } catch (error: any) {

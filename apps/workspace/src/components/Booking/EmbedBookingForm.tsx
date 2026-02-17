@@ -1136,16 +1136,21 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
 
         if (response.ok) {
           const result = await response.json();
-          
+
           // Filter out cancelled bookings and (if provider selected) bookings for other providers
           const activeBookings = (result.data || []).filter(
-            (booking: Booking & {service_provider_id?: string}) => {
+            (booking: Booking & { service_provider_id?: string }) => {
               if (booking.status === 'cancelled') return false;
               if (selectedProvider && booking.service_provider_id !== selectedProvider.id) return false;
               return true;
             }
           );
-          setExistingBookings(activeBookings);
+
+          // Merge Google Calendar busy slots so they are treated as booked (prevent double booking)
+          const calendarBusy = (result.calendar_busy || []).map(
+            (b: { start_at: string; end_at: string }) => ({ ...b, status: 'confirmed' as const })
+          );
+          setExistingBookings([...activeBookings, ...calendarBusy]);
         }
       } catch (error) {
         console.error('Error fetching bookings for date range:', error);

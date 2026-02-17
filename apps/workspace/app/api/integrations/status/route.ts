@@ -1,20 +1,52 @@
 import { NextResponse } from 'next/server';
-import { getUserIntegrations } from '@/lib/integrations';
-import { getUserIdFromRequest } from '@/lib/auth-helpers';
+import { createClient } from '@supabase/supabase-js';
+import { getWorkspaceIntegrations } from '@/lib/integrations';
+import { getAuthFromRequest } from '@/lib/auth-helpers';
 
 export async function GET(req: Request) {
   try {
-    const userId = await getUserIdFromRequest(req);
+    const auth = await getAuthFromRequest(req);
 
-    if (!userId) {
+    if (!auth?.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const integrations = await getUserIntegrations(userId);
+    if (!auth.workspaceId) {
+      return NextResponse.json({
+        integrations: {
+          google_calendar: false,
+          zoom: false,
+          google_calendar_email: undefined,
+        },
+      });
+    }
+
+    const integrations = await getWorkspaceIntegrations(auth.workspaceId);
+    const googleIntegration = integrations.find(i => i.provider === 'google_calendar');
+
+    let googleCalendarEmail: string | undefined;
+    const config = googleIntegration?.config as Record<string, unknown> | undefined;
+    if (config?.email) {
+      googleCalendarEmail = config.email as string;
+    } else {
+      const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+      const supabaseServiceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || '').trim();
+      if (supabaseUrl && supabaseServiceKey) {
+        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
+        const { data: userData } = await supabaseAdmin.auth.admin.getUserById(auth.userId);
+        const meta = userData?.user?.user_metadata as Record<string, unknown> | undefined;
+        if (meta?.google_email) {
+          googleCalendarEmail = meta.google_email as string;
+        }
+      }
+    }
 
     const status = {
-      google_calendar: integrations.some(i => i.type === 'google_calendar'),
-      zoom: integrations.some(i => i.type === 'zoom'),
+      google_calendar: !!googleIntegration,
+      zoom: integrations.some(i => i.provider === 'zoom'),
+      google_calendar_email: googleCalendarEmail,
     };
 
     return NextResponse.json({ integrations: status });

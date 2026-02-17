@@ -97,9 +97,9 @@ export default function Sidebar({ isOpen }: SidebarProps) {
             <FcAlarmClock className="h-5 w-5 mr-3" />
             Availability
           </Link>        
-          <Link href="/routingform" className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${ activeMenu === "routingform" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50" }`} onClick={() => setActiveMenu("routingform")}>
+          <Link href="/intakeform" className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${ activeMenu === "intakeform" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50" }`} onClick={() => setActiveMenu("intakeform")}>
             <svg className="h-7 w-7 mr-2" viewBox="-2.4 -2.4 28.80 28.80" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M16.5 4.25C18.8472 4.25 20.75 6.15279 20.75 8.5C20.75 10.8472 18.8472 12.75 16.5 12.75H7.5C5.98122 12.75 4.75 13.9812 4.75 15.5C4.75 17.0188 5.98122 18.25 7.5 18.25H18.1893L17.4697 17.5303C17.1768 17.2374 17.1768 16.7626 17.4697 16.4697C17.7626 16.1768 18.2374 16.1768 18.5303 16.4697L20.5303 18.4697C20.8232 18.7626 20.8232 19.2374 20.5303 19.5303L18.5303 21.5303C18.2374 21.8232 17.7626 21.8232 17.4697 21.5303C17.1768 21.2374 17.1768 20.7626 17.4697 20.4697L18.1893 19.75H7.5C5.15279 19.75 3.25 17.8472 3.25 15.5C3.25 13.1528 5.15279 11.25 7.5 11.25H16.5C18.0188 11.25 19.25 10.0188 19.25 8.5C19.25 6.98122 18.0188 5.75 16.5 5.75H7.85462C7.55793 6.48296 6.83934 7 6 7C4.89543 7 4 6.10457 4 5C4 3.89543 4.89543 3 6 3C6.83934 3 7.55793 3.51704 7.85462 4.25H16.5Z" fill="#1C274C"></path> </g></svg>
-            Routing & Forms
+            Forms
           </Link>
           {/* Departments with Services submenu */}
           <div>
@@ -139,7 +139,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
               </div>
             )}
           </div>
-          <Link href="/workflows" className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${ activeMenu === "workflows" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50" }`} onClick={() => setActiveMenu("workflows")}>
+          <Link href="/notifications" className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${ activeMenu === "notifications" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50" }`} onClick={() => setActiveMenu("notifications")}>
             <FcOrgUnit className="h-5 w-5 mr-3" />
             Notifications
           </Link>        
@@ -151,7 +151,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
             <FcBusinessman className="h-5 w-5 mr-3" />
             Team Members
           </Link>      
-          <Link href="/billings" className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${ activeMenu === "billings" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50" }`} onClick={() => setActiveMenu("billings")}>
+          {/* <Link href="/billings" className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${ activeMenu === "billings" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50" }`} onClick={() => setActiveMenu("billings")}>
             <FcCurrencyExchange className="h-5 w-5 mr-3" />
             Billings
           </Link>  
@@ -162,7 +162,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
           <Link href="/contacts" className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${ activeMenu === "contacts" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50" }`} onClick={() => setActiveMenu("contacts")}>
             <FcAddressBook className="h-5 w-5 mr-3" />
             Contacts
-          </Link>
+          </Link> */}
           <Link href="/settings" className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${ activeMenu === "settings" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50" }`} onClick={() => setActiveMenu("settings")}>
             <FcSettings className="h-5 w-5 mr-3" />
             Settings

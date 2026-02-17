@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 interface IntegrationStatus {
   google_calendar: boolean;
   zoom: boolean;
+  google_calendar_email?: string;
 }
 
 function IntegrationsContent() {
@@ -50,9 +51,10 @@ function IntegrationsContent() {
       });
       if (response.ok) {
         const data = await response.json();
-        setIntegrations(data.integrations || {
+        setIntegrations({
           google_calendar: false,
           zoom: false,
+          ...data.integrations,
         });
       }
     } catch (error) {
@@ -146,6 +148,7 @@ function IntegrationsContent() {
       save_failed: 'Failed to save integration',
       callback_failed: 'OAuth callback failed',
       config_missing: 'Integration not configured',
+      no_workspace: 'No workspace found. Please complete onboarding first.',
       unauthorized: 'Unauthorized. Please log in and try again.',
       oauth_error: 'OAuth authorization error. Please check your Google Cloud Console settings.',
       redirect_uri_mismatch: 'Redirect URI mismatch. Please ensure the redirect URI in Google Cloud Console matches your application URL.',
@@ -154,17 +157,17 @@ function IntegrationsContent() {
   };
 
   const items = [
-    { 
+    {
       id: 'google_calendar',
-      name: "Google Calendar", 
-      desc: "Add Events to your Calender and prevent Double Booking", 
+      name: "Google Calendar",
+      desc: "Add Events to your Calender and prevent Double Booking",
       connected: integrations.google_calendar,
       connectType: 'google' as const,
     },
-    { 
+    {
       id: 'zoom',
-      name: "Zoom Information", 
-      desc: "Includes Zoom details in your Getsettime App", 
+      name: "Zoom Information",
+      desc: "Includes Zoom details in your Getsettime App",
       connected: integrations.zoom,
       connectType: 'zoom' as const,
     },
@@ -199,7 +202,11 @@ function IntegrationsContent() {
               <div className={`text-sm mt-1 text-slate-500`}>{it.desc}</div>
               <div className="mt-4 flex items-center justify-between">
                 <span className={`text-xs font-medium ${ it.connected ? "text-emerald-600" : "text-slate-400" }`}>
-                  {it.connected ? "Connected" : "Not connected"}
+                  {it.connected
+                    ? (it.id === 'google_calendar' && integrations.google_calendar_email
+                      ? `Connected (${integrations.google_calendar_email})`
+                      : "Connected")
+                    : "Not connected"}
                 </span>
                 <button 
                   onClick={() => it.connected ? handleDisconnect(it.id as 'google_calendar' | 'zoom') : handleConnect(it.connectType)}

@@ -127,12 +127,13 @@ export async function GET(req: Request) {
       // Save Google Calendar integration if enabled
       if (enableCalendarSync && refresh_token) {
         await saveGoogleCalendarIntegration({
-          userId,
+          workspaceId: workspaceResult.workspaceId,
           accessToken: access_token,
           refreshToken: refresh_token,
           expiresAt: expires_at,
           scope: data.scope,
           email,
+          googleId: data.google_id,
           supabaseAdmin,
         });
       }
@@ -237,12 +238,13 @@ export async function GET(req: Request) {
       // Save Google Calendar integration if enabled
       if (enableCalendarSync && refresh_token) {
         await saveGoogleCalendarIntegration({
-          userId,
+          workspaceId: workspaceResult.workspaceId,
           accessToken: access_token,
           refreshToken: refresh_token,
           expiresAt: expires_at,
           scope: data.scope,
           email,
+          googleId: data.google_id,
           supabaseAdmin,
         });
       }

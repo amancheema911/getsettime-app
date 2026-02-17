@@ -149,8 +149,28 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ 
-      data: data || [], 
+    // Fetch Google Calendar busy slots when date range requested (for availability)
+    let calendarBusy: { start_at: string; end_at: string }[] = [];
+    if (startDate && endDate && workspaceId) {
+      try {
+        const { getBusySlots } = await import('@/lib/google-calendar-service');
+        const startOfRange = new Date(startDate);
+        startOfRange.setHours(0, 0, 0, 0);
+        const endOfRange = new Date(endDate);
+        endOfRange.setHours(23, 59, 59, 999);
+        calendarBusy = await getBusySlots(
+          Number(workspaceId),
+          startOfRange.toISOString(),
+          endOfRange.toISOString()
+        );
+      } catch {
+        // Non-blocking
+      }
+    }
+
+    return NextResponse.json({
+      data: data || [],
+      calendar_busy: calendarBusy,
       pagination: {
         page,
         limit,
@@ -307,6 +327,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ 
         error: 'This time slot has been marked as unavailable.' 
       }, { status: 400 });
+    }
+
+    // Check Google Calendar for busy slots (if integrated)
+    try {
+      const { isSlotBusyInCalendar } = await import('@/lib/google-calendar-service');
+      const isBusy = await isSlotBusyInCalendar(Number(workspaceId), start_at, end_at || start_at);
+      if (isBusy) {
+        return NextResponse.json({
+          error: 'This time slot is already booked or blocked in calendar. Please select another time.',
+        }, { status: 400 });
+      }
+    } catch (calErr) {
+      console.warn('Google Calendar conflict check failed (non-blocking):', calErr);
     }
 
     // Check for existing booking conflicts for the same service provider
@@ -501,6 +534,29 @@ export async function POST(req: NextRequest) {
       }
     } catch (whatsappError) {
       console.error('Error sending WhatsApp notification:', whatsappError);
+    }
+
+    // Sync to Google Calendar (best-effort)
+    try {
+      const { createCalendarEvent } = await import('@/lib/google-calendar-service');
+      const { eventId } = await createCalendarEvent({
+        workspaceId,
+        summary: `${eventTypeName}: ${invitee_name.trim()}`,
+        description: metadata?.notes ? String(metadata.notes) : undefined,
+        startAt: start_at,
+        endAt: end_at || start_at,
+        location: location || undefined,
+        attendeeEmail: invitee_email?.trim() || undefined,
+        metadata: { bookingId: data?.id, eventTypeName },
+      });
+      if (eventId && data?.metadata && typeof data.metadata === 'object') {
+        await supabase
+          .from('bookings')
+          .update({ metadata: { ...(data.metadata as object), google_calendar_event_id: eventId } })
+          .eq('id', data.id);
+      }
+    } catch (calErr) {
+      console.warn('Google Calendar sync failed (non-blocking):', calErr);
     }
 
     return NextResponse.json({ data });

@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     // Fetch all event types for the workspace (for embed bookings, show all available)
     const { data, error } = await supabase
       .from('event_types')
-      .select('id, title, duration_minutes')
+      .select('id, title, slug, duration_minutes')
       .eq('workspace_id', workspaceIdResolved)
       .order('created_at', { ascending: false });
 

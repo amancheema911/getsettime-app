@@ -21,9 +21,11 @@ export const useAuth = () => useContext(AuthContext)
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/login", "/auth/register", "/auth/forgot-password", "/auth/callback", "/invite-accept"];
 
-// Check if route matches public pattern (e.g., /book/*)
+// Reserved first path segments (app routes) - embed booking uses /[workspaceSlug] or /[workspaceSlug]/[eventTypeSlug]
+const RESERVED_FIRST_SEGMENTS = ['login', 'register', 'forgot-password', 'reset-password', 'auth', 'invite-accept', 'event-type', 'routingform', 'workflows', 'availability', 'team-members', 'departments', 'services', 'profile', 'integrations', 'contacts', 'billings', 'bookings', 'settings', 'api', '_next'];
 function isPublicRoutePattern(pathname: string): boolean {
-  return pathname.startsWith('/book/');
+  const segments = pathname.split('/').filter(Boolean);
+  return (segments.length === 1 || segments.length === 2) && !RESERVED_FIRST_SEGMENTS.includes(segments[0]);
 }
 
 // Allowed roles for workspace app

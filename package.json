@@ -16,5 +16,8 @@
     "start:workspace": "yarn workspace workspace-app start",
     "start:superadmin": "yarn workspace superadmin-app start",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx"
+  },
+  "dependencies": {
+    "twilio": "^5.12.1"
   }
 }

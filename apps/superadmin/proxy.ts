@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export default function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
   const role = request.cookies.get('x_role')?.value;
   const pathname = url.pathname;

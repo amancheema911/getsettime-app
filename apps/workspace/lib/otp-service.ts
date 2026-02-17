@@ -202,15 +202,15 @@ export async function sendOTPEmail(email: string, code: string): Promise<boolean
   try {
     // Option 1: Using Resend (recommended)
     // Install: npm install resend
-    const { Resend } = require('resend');
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const { error } = await resend.emails.send({
-      from: 'noreply@yourdomain.com',
-      to: email,
-      subject: 'Your Verification Code',
-      html: `<p>Your verification code is: <strong>${code}</strong></p><p>This code will expire in 10 minutes.</p>`,
-    });
-    return !error;
+    // const { Resend } = require('resend');
+    // const resend = new Resend(process.env.RESEND_API_KEY);
+    // const { error } = await resend.emails.send({
+    //   from: 'noreply@yourdomain.com',
+    //   to: email,
+    //   subject: 'Your Verification Code',
+    //   html: `<p>Your verification code is: <strong>${code}</strong></p><p>This code will expire in 10 minutes.</p>`,
+    // });
+    // return !error;
 
     // Option 2: Using Supabase Email (if configured)
     // const supabase = createSupabaseServerClient();
@@ -221,23 +221,23 @@ export async function sendOTPEmail(email: string, code: string): Promise<boolean
 
     // Option 3: Using Nodemailer with SMTP
     // Install: npm install nodemailer
-    // const nodemailer = require('nodemailer');
-    // const transporter = nodemailer.createTransport({
-    //   host: process.env.SMTP_HOST,
-    //   port: parseInt(process.env.SMTP_PORT || '587'),
-    //   secure: false,
-    //   auth: {
-    //     user: process.env.SMTP_USER,
-    //     pass: process.env.SMTP_PASS,
-    //   },
-    // });
-    // await transporter.sendMail({
-    //   from: process.env.SMTP_FROM,
-    //   to: email,
-    //   subject: 'Your Verification Code',
-    //   html: `<p>Your verification code is: <strong>${code}</strong></p>`,
-    // });
-    // return true;
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: 'Your Verification Code',
+      html: `<p>Your verification code is: <strong>${code}</strong></p>`,
+    });
+    return true;
 
     // For now, log in development
     if (process.env.NODE_ENV === 'development') {

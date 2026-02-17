@@ -83,13 +83,33 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, logo_url, type } = body;
+    const { name, slug, logo_url, type } = body;
 
     const supabase = createSupabaseServerClient();
-    const updateData: { name?: string; logo_url?: string | null; type?: string | null } = {};
+    const updateData: { name?: string; slug?: string; logo_url?: string | null; type?: string | null } = {};
 
     if (name !== undefined) {
       updateData.name = name;
+    }
+
+    if (slug !== undefined) {
+      const trimmedSlug = typeof slug === 'string' ? slug.trim().toLowerCase() : '';
+      if (trimmedSlug) {
+        const slugRegex = /^[a-z0-9_-]+$/;
+        if (!slugRegex.test(trimmedSlug)) {
+          return NextResponse.json({ error: 'Slug must contain only lowercase letters, numbers, hyphens, and underscores' }, { status: 400 });
+        }
+        const { data: existing } = await supabase
+          .from('workspaces')
+          .select('id')
+          .eq('slug', trimmedSlug)
+          .neq('id', workspaceId)
+          .maybeSingle();
+        if (existing) {
+          return NextResponse.json({ error: 'Slug already exists' }, { status: 409 });
+        }
+        updateData.slug = trimmedSlug;
+      }
     }
 
     if (logo_url !== undefined) {

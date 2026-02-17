@@ -7,6 +7,7 @@ import type { IntakeCustomField, IntakeCustomFieldType, IntakeFormSettings } fro
 interface EventType {
   id: string;
   title: string;
+  slug?: string;
   duration_minutes: number | null;
 }
 
@@ -25,6 +26,8 @@ interface ServiceProvider {
 
 interface EmbedBookingFormProps {
   workspace: Workspace;
+  eventType?: string; // e.g., "15mins", "30mins", "60mins" (deprecated - for backward compatibility)
+  eventTypeSlug?: string; // e.g., "15mins-chat", "30mins-consultation"
 }
 
 type DayName = "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat";
@@ -100,7 +103,7 @@ const getAllowedServiceIds = (settings: IntakeFormSettings | undefined): string[
   return services?.allowed_service_ids || [];
 };
 
-const EmbedBookingForm = ({ workspace }: EmbedBookingFormProps) => {
+const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingFormProps) => {
   const [step, setStep] = useState(1);
   
   // Department and service provider selection state
@@ -136,9 +139,27 @@ const EmbedBookingForm = ({ workspace }: EmbedBookingFormProps) => {
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [loadingEventTypes, setLoadingEventTypes] = useState(true);
   
-  // Sort event types by duration: 15min, 30min, 45min, then 60min+
+  // Parse event type duration from URL parameter (e.g., "15mins" -> 15)
+  const targetDuration = useMemo(() => {
+    if (!eventType) return null;
+    const match = eventType.match(/^(\d+)(?:min|mins|minute|minutes)?$/i);
+    return match ? parseInt(match[1], 10) : null;
+  }, [eventType]);
+  
+  // Sort and filter event types by duration or slug
   const sortedEventTypes = useMemo(() => {
-    return [...eventTypes].sort((a, b) => {
+    let filtered = [...eventTypes];
+    
+    // Filter by event type slug if specified (takes priority)
+    if (eventTypeSlug) {
+      filtered = filtered.filter(t => t.slug === eventTypeSlug);
+    }
+    // Otherwise filter by target duration if specified in URL (backward compatibility)
+    else if (targetDuration !== null) {
+      filtered = filtered.filter(t => t.duration_minutes === targetDuration);
+    }
+    
+    return filtered.sort((a, b) => {
       const durationA = a.duration_minutes || 0;
       const durationB = b.duration_minutes || 0;
       
@@ -171,7 +192,7 @@ const EmbedBookingForm = ({ workspace }: EmbedBookingFormProps) => {
       // For durations not in the order and less than 60, sort ascending
       return durationA - durationB;
     });
-  }, [eventTypes]);
+  }, [eventTypes, targetDuration, eventTypeSlug]);
   const [availabilitySettings, setAvailabilitySettings] = useState<AvailabilitySettings | null>(null);
   const [existingBookings, setExistingBookings] = useState<Booking[]>([]);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
@@ -987,6 +1008,13 @@ const EmbedBookingForm = ({ workspace }: EmbedBookingFormProps) => {
 
     fetchEventTypes();
   }, [workspace.slug]);
+
+  // Auto-select event type if filtered to exactly one option
+  useEffect(() => {
+    if ((eventTypeSlug || targetDuration !== null) && sortedEventTypes.length === 1 && !selectedType) {
+      setSelectedType(sortedEventTypes[0]);
+    }
+  }, [eventTypeSlug, targetDuration, sortedEventTypes, selectedType]);
 
   // Fetch availability settings for selected provider (or general settings if no departments)
   useEffect(() => {
@@ -1849,15 +1877,27 @@ const EmbedBookingForm = ({ workspace }: EmbedBookingFormProps) => {
                         <span>Loading event types...</span>
                       </div>
                     </div>
-                  ) : eventTypes.length === 0 ? (
+                  ) : sortedEventTypes.length === 0 ? (
                     <div className="text-center py-16 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
                       <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
                         <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
                       </div>
-                      <p className="text-gray-600 font-medium">No event types available</p>
-                      <p className="text-sm text-gray-400 mt-2">Please contact the workspace owner</p>
+                      <p className="text-gray-600 font-medium">
+                        {eventTypeSlug
+                          ? `Event type "${eventTypeSlug}" not found`
+                          : targetDuration !== null 
+                          ? `No ${targetDuration}-minute event types available`
+                          : 'No event types available'
+                        }
+                      </p>
+                      <p className="text-sm text-gray-400 mt-2">
+                        {eventTypeSlug || targetDuration !== null
+                          ? 'This event type is not available. Please check the URL or contact the workspace owner.'
+                          : 'Please contact the workspace owner'
+                        }
+                      </p>
                     </div>
                   ) : (
                     <div className="grid gap-4">

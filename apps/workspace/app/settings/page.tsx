@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 
 export default function SettingsPage() {
   const [accountName, setAccountName] = useState('');
+  const [workspaceSlug, setWorkspaceSlug] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#2ECC71');
   const [accentColor, setAccentColor] = useState('#673AB7');
   const [logoFileName, setLogoFileName] = useState('No file selected');
@@ -13,6 +14,7 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -48,6 +50,7 @@ export default function SettingsPage() {
         const workspace = workspaceData.workspace;
         // Set account name (even if empty/null)
         setAccountName(workspace.name || '');
+        setWorkspaceSlug(workspace.slug || '');
         
         // Set logo if it exists
         if (workspace.logo_url) {
@@ -134,8 +137,17 @@ export default function SettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
+    setLinkError(null);
     setSaveMessage(null);
+
+    const trimmedSlug = workspaceSlug.trim();
+    if (!trimmedSlug) {
+      setLinkError('Link is required');
+      setSaveMessage({ type: 'error', text: 'Link is required.' });
+      return;
+    }
+
+    setIsSaving(true);
 
     try {
       const { supabase } = await import('@/lib/supabaseClient');
@@ -151,6 +163,7 @@ export default function SettingsPage() {
         },
         body: JSON.stringify({
           name: accountName,
+          slug: workspaceSlug.trim().toLowerCase() || undefined,
           logo_url: logoUrl,
         }),
       });
@@ -229,6 +242,29 @@ export default function SettingsPage() {
                     className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter account name"
                   />
+                </div>
+
+                {/* Workspace slug / My Link */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    My Link
+                  </label>
+                  <input
+                    type="text"
+                    value={workspaceSlug}
+                    onChange={(e) => {
+                      setWorkspaceSlug(e.target.value);
+                      if (linkError) setLinkError(null);
+                    }}
+                    className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      linkError ? 'border-red-500' : 'border-slate-300'
+                    }`}
+                    placeholder="Enter link"
+                    required
+                  />
+                  {linkError && (
+                    <p className="mt-1 text-sm text-red-600">{linkError}</p>
+                  )}
                 </div>
 
                 {/* Primary Color */}

@@ -104,93 +104,105 @@ const timeToAngle = (time: string): number => {
   return (totalMinutes / (24 * 60)) * 360 - 90; // -90 to start at top
 };
 
-// Visual Availability Clock Component
-const VisualAvailabilityClock: React.FC<{
-  startTime: string;
-  endTime: string;
-  breaks: BreakTime[];
-}> = ({ startTime, endTime, breaks }) => {
-  const startAngle = timeToAngle(startTime);
-  const endAngle = timeToAngle(endTime);
-  const startDisplay = formatTimeForDisplay(startTime);
-  const endDisplay = formatTimeForDisplay(endTime);
-
-  // Calculate the sweep angle
-  let sweepAngle = endAngle - startAngle;
-  if (sweepAngle < 0) sweepAngle += 360;
-
-  // Helper to draw arc segments
-  const drawArc = (startAngle: number, endAngle: number, radius: number, largeArc: boolean) => {
-    const startX = 100 + radius * Math.cos((startAngle * Math.PI) / 180);
-    const startY = 100 + radius * Math.sin((startAngle * Math.PI) / 180);
-    const endX = 100 + radius * Math.cos((endAngle * Math.PI) / 180);
-    const endY = 100 + radius * Math.sin((endAngle * Math.PI) / 180);
-    return `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArc ? 1 : 0} 1 ${endX} ${endY}`;
-  };
-
-  // Calculate available segments (excluding breaks)
-  const calculateSegments = () => {
-    const segments: Array<{ start: number; end: number }> = [];
-    let currentStart = startAngle;
-    
-    // Sort breaks by start time
-    const sortedBreaks = [...breaks].sort((a, b) => {
-      const aStart = timeToAngle(a.start);
-      const bStart = timeToAngle(b.start);
-      return aStart - bStart;
-    });
-
-    for (const breakTime of sortedBreaks) {
-      const breakStart = timeToAngle(breakTime.start);
-      const breakEnd = timeToAngle(breakTime.end);
-      
-      // If break is within our time range, split the segment
-      if (breakStart >= currentStart && breakStart <= endAngle) {
-        if (currentStart < breakStart) {
-          segments.push({ start: currentStart, end: breakStart });
-        }
-        currentStart = Math.max(currentStart, breakEnd);
-      }
-    }
-    
-    // Add final segment
-    if (currentStart < endAngle) {
-      segments.push({ start: currentStart, end: endAngle });
-    }
-    
-    return segments.length > 0 ? segments : [{ start: startAngle, end: endAngle }];
-  };
-
-  const availableSegments = calculateSegments();
-
-  return (
-    <div className="flex flex-col items-center">
-        
-        <div className="flex items-center justify-center">
-          <div className="relative h-56 w-56 rounded-full bg-slate-900 shadow-inner">
-            <div className="absolute inset-4 rounded-full border border-indigo-400/30" />
-            <div className="absolute inset-10 rounded-full border border-indigo-400/20" />
-
-            {/* Time markers */}
-            <span className="absolute left-1/2 top-2 -translate-x-1/2 text-[10px] text-indigo-300">9 AM</span>
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-indigo-300">12 PM</span>
-            <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-indigo-300">5 PM</span>
-
-            {/* Active arc (visual only) */}
-            <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_210deg,rgba(99,102,241,0.0),rgba(99,102,241,0.9),rgba(168,85,247,0.9),rgba(99,102,241,0.0))] opacity-80" />
-
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-slate-900 rounded-full w-24 h-24 flex flex-col items-center justify-center">
-                    <div className="text-white text-sm font-medium">{startDisplay}</div>
-                    <div className="text-slate-400 text-xs">-</div>
-                    <div className="text-white text-sm font-medium">{endDisplay}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-  );
+// Helper function to calculate hours between start and end time
+const calculateHours = (startTime: string, endTime: string): number => {
+  const [startHours, startMins] = startTime.split(':').map(Number);
+  const [endHours, endMins] = endTime.split(':').map(Number);
+  const startTotal = startHours * 60 + startMins;
+  const endTotal = endHours * 60 + endMins;
+  const diffMinutes = endTotal - startTotal;
+  // Handle case where end time is next day (shouldn't happen in this context, but just in case)
+  const totalMinutes = diffMinutes < 0 ? diffMinutes + 24 * 60 : diffMinutes;
+  return totalMinutes / 60;
 };
+
+// Visual Availability Clock Component
+// const VisualAvailabilityClock: React.FC<{
+//   startTime: string;
+//   endTime: string;
+//   breaks: BreakTime[];
+// }> = ({ startTime, endTime, breaks }) => {
+//   const startAngle = timeToAngle(startTime);
+//   const endAngle = timeToAngle(endTime);
+//   const startDisplay = formatTimeForDisplay(startTime);
+//   const endDisplay = formatTimeForDisplay(endTime);
+
+//   // Calculate the sweep angle
+//   let sweepAngle = endAngle - startAngle;
+//   if (sweepAngle < 0) sweepAngle += 360;
+
+//   // Helper to draw arc segments
+//   const drawArc = (startAngle: number, endAngle: number, radius: number, largeArc: boolean) => {
+//     const startX = 100 + radius * Math.cos((startAngle * Math.PI) / 180);
+//     const startY = 100 + radius * Math.sin((startAngle * Math.PI) / 180);
+//     const endX = 100 + radius * Math.cos((endAngle * Math.PI) / 180);
+//     const endY = 100 + radius * Math.sin((endAngle * Math.PI) / 180);
+//     return `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArc ? 1 : 0} 1 ${endX} ${endY}`;
+//   };
+
+//   // Calculate available segments (excluding breaks)
+//   const calculateSegments = () => {
+//     const segments: Array<{ start: number; end: number }> = [];
+//     let currentStart = startAngle;
+    
+//     // Sort breaks by start time
+//     const sortedBreaks = [...breaks].sort((a, b) => {
+//       const aStart = timeToAngle(a.start);
+//       const bStart = timeToAngle(b.start);
+//       return aStart - bStart;
+//     });
+
+//     for (const breakTime of sortedBreaks) {
+//       const breakStart = timeToAngle(breakTime.start);
+//       const breakEnd = timeToAngle(breakTime.end);
+      
+//       // If break is within our time range, split the segment
+//       if (breakStart >= currentStart && breakStart <= endAngle) {
+//         if (currentStart < breakStart) {
+//           segments.push({ start: currentStart, end: breakStart });
+//         }
+//         currentStart = Math.max(currentStart, breakEnd);
+//       }
+//     }
+    
+//     // Add final segment
+//     if (currentStart < endAngle) {
+//       segments.push({ start: currentStart, end: endAngle });
+//     }
+    
+//     return segments.length > 0 ? segments : [{ start: startAngle, end: endAngle }];
+//   };
+
+//   const availableSegments = calculateSegments();
+
+//   return (
+//     <div className="flex flex-col items-center">
+        
+//         <div className="flex items-center justify-center">
+//           <div className="relative h-56 w-56 rounded-full bg-slate-900 shadow-inner">
+//             <div className="absolute inset-4 rounded-full border border-indigo-400/30" />
+//             <div className="absolute inset-10 rounded-full border border-indigo-400/20" />
+
+//             {/* Time markers */}
+//             <span className="absolute left-1/2 top-2 -translate-x-1/2 text-[10px] text-indigo-300">9 AM</span>
+//             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-indigo-300">12 PM</span>
+//             <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-indigo-300">5 PM</span>
+
+//             {/* Active arc (visual only) */}
+//             <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_210deg,rgba(99,102,241,0.0),rgba(99,102,241,0.9),rgba(168,85,247,0.9),rgba(99,102,241,0.0))] opacity-80" />
+
+//             <div className="absolute inset-0 flex items-center justify-center">
+//               <div className="bg-slate-900 rounded-full w-24 h-24 flex flex-col items-center justify-center">
+//                     <div className="text-white text-sm font-medium">{startDisplay}</div>
+//                     <div className="text-slate-400 text-xs">-</div>
+//                     <div className="text-white text-sm font-medium">{endDisplay}</div>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//   );
+// };
 
 export default function AvailabilityTimesheet({ onSave }: AvailabilityTimesheetProps) {
   const [schedules, setSchedules] = useState<Record<DayName, DaySchedule>>(() => {
@@ -516,6 +528,86 @@ export default function AvailabilityTimesheet({ onSave }: AvailabilityTimesheetP
     });
   };
 
+  const copyToAllDays = (sourceDay: DayName) => {
+    const sourceSchedule = schedules[sourceDay];
+    
+    // Deep copy the schedule including breaks with new IDs
+    const copiedSchedule: DaySchedule = {
+      enabled: sourceSchedule.enabled,
+      startTime: sourceSchedule.startTime,
+      endTime: sourceSchedule.endTime,
+      breaks: sourceSchedule.breaks.map((breakTime) => ({
+        ...breakTime,
+        id: `break-${Date.now()}-${Math.random()}`, // Generate new IDs for breaks
+      })),
+    };
+    
+    // Apply to all days except the source day
+    setSchedules((prev) => {
+      const updated = { ...prev };
+      DAYS.forEach((day) => {
+        if (day !== sourceDay) {
+          updated[day] = { ...copiedSchedule };
+        }
+      });
+      return updated;
+    });
+  };
+
+  // Calculate enabled days count
+  const enabledDaysCount = Object.values(schedules).filter(schedule => schedule.enabled).length;
+
+  // Calculate total hours per week
+  const calculateTotalHoursPerWeek = (): number => {
+    let totalHours = 0;
+    Object.values(schedules).forEach((schedule) => {
+      if (schedule.enabled) {
+        const hours = calculateHours(schedule.startTime, schedule.endTime);
+        // Subtract break hours
+        const breakHours = schedule.breaks.reduce((total, breakTime) => {
+          return total + calculateHours(breakTime.start, breakTime.end);
+        }, 0);
+        totalHours += hours - breakHours;
+      }
+    });
+    return Math.round(totalHours);
+  };
+
+  const totalHoursPerWeek = calculateTotalHoursPerWeek();
+
+  // Get timezone
+  const getTimezone = (): string => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      return 'UTC';
+    }
+  };
+
+  const timezone = getTimezone();
+
+  // Enable all days
+  const enableAllDays = () => {
+    setSchedules((prev) => {
+      const updated = { ...prev };
+      DAYS.forEach((day) => {
+        updated[day] = { ...updated[day], enabled: true };
+      });
+      return updated;
+    });
+  };
+
+  // Disable all days
+  const disableAllDays = () => {
+    setSchedules((prev) => {
+      const updated = { ...prev };
+      DAYS.forEach((day) => {
+        updated[day] = { ...updated[day], enabled: false };
+      });
+      return updated;
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="text-center py-8 text-slate-400">Loading availability timesheet...</div>
@@ -524,25 +616,76 @@ export default function AvailabilityTimesheet({ onSave }: AvailabilityTimesheetP
 
   return (
     <div className="rounded-xl">
-      {/* <h4 className="text-xl font-semibold mb-6">Availability Timesheet</h4> */}
+      {/* Header Bar */}
+      <div className="bg-[radial-gradient(circle_at_18%_0%,rgba(99,102,241,0.14),transparent_42%),radial-gradient(circle_at_92%_16%,rgba(16,185,129,0.10),transparent_45%)] relative overflow-hidden rounded-xl p-6 mb-6 shadow-sm border border-slate-200">
+      
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          {/* Left Side - Info Tags and Description */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Enabled Days Count */}
+              <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 bg-emerald-50 text-emerald-700 ring-emerald-200">
+                {enabledDaysCount} enabled
+              </span>
+              {/* Total Hours Per Week */}
+              <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 bg-slate-100 text-slate-700 ring-slate-200">
+                {totalHoursPerWeek}h / week
+              </span>
+              {/* Timezone */}
+              <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 bg-slate-100 text-slate-700 ring-slate-200">
+                Time zone: {timezone}
+              </span>
+            </div>
+            {/* Description Text */}
+            <p className="text-sm text-slate-600">Toggle days on/off, adjust hours, and add breaks.</p>
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Right Side - Action Buttons */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={enableAllDays}
+              className="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors text-sm font-medium"
+            >
+              Enable all
+            </button>
+            <button
+              type="button"
+              onClick={disableAllDays}
+              className="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors text-sm font-medium"
+            >
+              Disable all
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className={`px-6 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors font-medium text-sm ${
+                isSaving ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {isSaving ? 'Saving...' : 'Save changes'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {DAYS.map((day) => {
           const schedule = schedules[day];
           const dayLetter = day[0];
           const dayFullName = DAY_NAMES[day];
           
           return (
-            <div
-              key={day}
-              className="bg-white rounded-xl p-6 shadow-sm"
-            >
+            <div key={day} className="bg-white rounded-xl p-6 overflow-hidden shadow-sm relative">
+              <div className="absolute z-0 inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(99,102,241,0.16),transparent_42%),radial-gradient(circle_at_95%_10%,rgba(16,185,129,0.10),transparent_45%)]"></div>
+
               {/* Header Section */}
-              <div className="flex items-start justify-between mb-6">
+              <div className="flex items-start justify-between z-10 relative">
                 <div className="flex items-center gap-4">
                   {/* Day Icon */}
                   <div className="relative">
-                    <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-xl bg-indigo-600 flex items-center justify-center">
                       <span className="text-white text-2xl font-bold">{dayLetter}</span>
                     </div>
                     {schedule.enabled && (
@@ -551,169 +694,218 @@ export default function AvailabilityTimesheet({ onSave }: AvailabilityTimesheetP
                   </div>
                   
                   <div>
-                    <h3 className="text-2xl font-semibold text-gray-800">{dayFullName}</h3>
-                    <p className="text-sm text-slate-400 mt-1">Visual availability clock</p>
+                    <h3 className="text-xl font-bold text-gray-800">{dayFullName}</h3>
+                    {schedule.enabled ? (
+                      <p className="text-sm text-slate-400 mt-1 flex items-center flex-wrap gap-2">
+                        <span className="rounded-full px-2.5 py-1 text-xs font-semibold ring-1 bg-emerald-500/10 text-emerald-700 ring-emerald-500/20">({Math.round(calculateHours(schedule.startTime, schedule.endTime))} hours)</span>
+                        
+                        <span className="rounded-full px-2.5 py-1 text-xs font-semibold ring-1 bg-zinc-900/5 text-zinc-700 ring-zinc-900/10">{formatTimeForDisplay(schedule.startTime)} - {formatTimeForDisplay(schedule.endTime)}</span>
+                      </p>
+                    ) : (
+                      <p className="rounded-full px-2.5 py-1 mt-1 text-xs font-semibold ring-1 bg-amber-500/10 text-amber-700 ring-amber-500/20">Not available</p>
+                    )}
                   </div>
                 </div>
 
                 {/* Available Button */}
-                <button
-                  type="button"
-                  onClick={() => updateDaySchedule(day, { enabled: !schedule.enabled })}
-                  className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                    schedule.enabled
-                      ? 'bg-green-500 text-white hover:bg-green-600'
-                      : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                  }`}
-                >
-                  {schedule.enabled ? 'Available' : 'Unavailable'}
-                </button>
+                <div className="flex items-center flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => updateDaySchedule(day, { enabled: !schedule.enabled })}
+                    className={`group inline-flex items-center gap-2 rounded-full border px-2 py-1.5 transition ${ schedule.enabled ? 'border-emerald-300 bg-emerald-50' : 'border-slate-300 bg-slate-100'
+                    }`}>
+                    <span className={`relative h-5 w-9 rounded-full transition ${ schedule.enabled ? 'bg-emerald-500' : 'bg-slate-400' }`}>
+                      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition ${ schedule.enabled ? 'left-[18px]' : 'left-0.5' }`}/>
+                    </span>
+                    <span className={`text-xs font-extrabold ${ schedule.enabled ? 'text-emerald-700' : 'text-slate-600' }`}>{schedule.enabled ? 'Available' : 'Off'}</span>
+                  </button>
+
+                  <button type="button" onClick={() => copyToAllDays(day)} className="text-xs font-extrabold text-indigo-700 hover:text-indigo-800">Copy to all</button>
+                </div>
               </div>
 
-              {schedule.enabled && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Visual Availability Clock - Left Side */}
-                  <div className="flex items-center justify-center">
-                    <VisualAvailabilityClock
-                      startTime={schedule.startTime}
-                      endTime={schedule.endTime}
-                      breaks={schedule.breaks}
-                    />
-                  </div>
+              <div className={`grid grid-cols-1 gap-8 z-10 relative ${!schedule.enabled ? 'opacity-50' : ''}`}>
+                {/* Visual Availability Clock - Left Side */}
+                <div className="flex items-center justify-center">
+                  {/* <VisualAvailabilityClock
+                    startTime={schedule.startTime}
+                    endTime={schedule.endTime}
+                    breaks={schedule.breaks}
+                  /> */}
+                </div>
 
-                  {/* Controls - Right Side */}
-                  <div className="space-y-4">
-                    {/* Time Settings */}
-                    <div className="bg-gray-100 rounded-lg p-3 grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium mb-2">START</label>
-                        <div className="relative">
-                          <select
-                            value={schedule.startTime}
-                            onChange={(e) => updateDaySchedule(day, { startTime: e.target.value })}
-                            className="w-full px-3 py-2 rounded bg-gray-200 text-sm appearance-none pr-8"
-                          >
-                            {timeOptions.map((option) => (
-                              <option key={option.value} value={option.value} className="bg-gray-200">
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-medium mb-2">END</label>
-                        <div className="relative">
-                          <select
-                            value={schedule.endTime}
-                            onChange={(e) => updateDaySchedule(day, { endTime: e.target.value })}
-                            className="w-full px-3 py-2 rounded bg-gray-200 text-sm appearance-none pr-8"
-                          >
-                            {getFilteredTimeOptions(schedule.startTime, undefined, true).map((option) => (
-                              <option key={option.value} value={option.value} className="bg-gray-200">
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </div>
+                {/* Controls - Right Side */}
+                <div className="space-y-4 p-3">
+                  {/* Time Settings */}
+                  <div className="rounded-lg grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${!schedule.enabled ? 'text-slate-400' : ''}`}>START</label>
+                      <div className="relative">
+                        <select 
+                          value={schedule.startTime} 
+                          onChange={(e) => updateDaySchedule(day, { startTime: e.target.value })} 
+                          disabled={!schedule.enabled}
+                          className={`w-full px-3 py-3 rounded bg-white border border-slate-200 rounded-2xl text-sm appearance-none pr-8 ${
+                            !schedule.enabled ? 'bg-slate-100 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          {timeOptions.map((option) => (
+                            <option key={option.value} value={option.value} className="bg-white">
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                          <svg className={`w-5 h-5 ${!schedule.enabled ? 'text-slate-300' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
                         </div>
                       </div>
                     </div>
 
-                    {/* Breaks Section */}
-                    <div className="bg-gray-100 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-3">
-                        <label className="block text-sm font-medium text-gray-700">Breaks</label>
-                        <button
-                          type="button"
-                          onClick={() => addBreak(day)}
-                          className="px-2 py-1 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-xs font-medium"
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${!schedule.enabled ? 'text-slate-400' : ''}`}>END</label>
+                      <div className="relative">
+                        <select
+                          value={schedule.endTime}
+                          onChange={(e) => updateDaySchedule(day, { endTime: e.target.value })}
+                          disabled={!schedule.enabled}
+                          className={`w-full px-3 py-3 rounded bg-white border border-slate-200 rounded-2xl text-sm appearance-none pr-8 ${
+                            !schedule.enabled ? 'bg-slate-100 cursor-not-allowed' : ''
+                          }`}
                         >
-                          + Add
-                        </button>
+                          {getFilteredTimeOptions(schedule.startTime, undefined, true).map((option) => (
+                            <option key={option.value} value={option.value} className="bg-white">
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                          <svg className={`w-5 h-5 ${!schedule.enabled ? 'text-slate-300' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
                       </div>
+                    </div>
+                  </div>
 
-                      {schedule.breaks.length === 0 ? (
-                        <p className="text-xs text-slate-500 italic">No breaks configured</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {schedule.breaks.map((breakTime) => (
-                            <div
-                              key={breakTime.id}
-                              className="flex items-center gap-2 rounded-lg"
-                            >
-                              <div className="relative flex-1">
+                  {/* Breaks Section */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className={`block text-sm font-bold mb-1 ${!schedule.enabled ? 'text-slate-400' : 'text-gray-800'}`}>Breaks</p>
+                        <p className={`text-xs italic ${!schedule.enabled ? 'text-slate-300' : 'text-slate-500'}`}>Lunch or short pauses.</p>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => addBreak(day)} 
+                        disabled={!schedule.enabled}
+                        className={`px-2 py-1 rounded-lg text-white transition-colors text-xs font-medium ${
+                          !schedule.enabled 
+                            ? 'bg-slate-400 cursor-not-allowed' 
+                            : 'bg-indigo-600 hover:bg-indigo-700'
+                        }`}
+                      >
+                        + Add
+                      </button>
+                    </div>
+
+                    {schedule.breaks.length === 0 ? (
+                      <p className={`text-xs italic ${!schedule.enabled ? 'text-slate-300' : 'text-slate-500'}`}>No breaks configured</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {schedule.breaks.map((breakTime) => (
+                          <div
+                            key={breakTime.id}
+                            className="grid grid-cols-[1fr_1fr_auto] items-end gap-2"
+                          >
+                            <div className="relative flex-1">
+                              <label className={`block text-sm font-medium mb-2 ${!schedule.enabled ? 'text-slate-400' : ''}`}>FROM</label>
+                              <div className='relative'>
                                 <select
                                   value={breakTime.start}
                                   onChange={(e) =>
                                     updateBreak(day, breakTime.id, 'start', e.target.value)
                                   }
-                                  className="w-full px-3 py-2 rounded bg-gray-200 text-sm appearance-none pr-8"
+                                  disabled={!schedule.enabled}
+                                  className={`w-full px-3 py-3 rounded bg-white border border-slate-200 rounded-2xl text-sm appearance-none pr-8 ${
+                                    !schedule.enabled ? 'bg-slate-100 cursor-not-allowed' : ''
+                                  }`}
                                 >
                                   {getFilteredTimeOptions(schedule.startTime, schedule.endTime, true).map((option) => (
-                                    <option key={option.value} value={option.value} className="bg-gray-200">
+                                    <option key={option.value} value={option.value} className="bg-white">
                                       {option.label}
                                     </option>
                                   ))}
                                 </select>
                                 <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className={`w-4 h-4 ${!schedule.enabled ? 'text-slate-300' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                   </svg>
                                 </div>
                               </div>
-                              <span className="text-slate-400 text-sm">–</span>
-                              <div className="relative flex-1">
+                            </div>
+                            <div className="relative flex-1">
+                              <label className={`block text-sm font-medium mb-2 ${!schedule.enabled ? 'text-slate-400' : ''}`}>TO</label>
+                              <div className='relative'>
                                 <select
                                   value={breakTime.end}
                                   onChange={(e) =>
                                     updateBreak(day, breakTime.id, 'end', e.target.value)
                                   }
-                                  className="w-full px-3 py-2 rounded bg-gray-200 text-sm appearance-none pr-8"
+                                  disabled={!schedule.enabled}
+                                  className={`w-full px-3 py-3 rounded bg-white border border-slate-200 rounded-2xl text-sm appearance-none pr-8 ${
+                                    !schedule.enabled ? 'bg-slate-100 cursor-not-allowed' : ''
+                                  }`}
                                 >
                                   {getFilteredTimeOptions(breakTime.start, schedule.endTime, true).map((option) => (
-                                    <option key={option.value} value={option.value} className="bg-gray-200">
+                                    <option key={option.value} value={option.value} className="bg-white">
                                       {option.label}
                                     </option>
                                   ))}
                                 </select>
                                 <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className={`w-4 h-4 ${!schedule.enabled ? 'text-slate-300' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                   </svg>
                                 </div>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => removeBreak(day, breakTime.id)}
-                                className="px-3 py-2 text-xs text-red-400 hover:text-red-300 transition-colors"
-                              >
-                                Remove
-                              </button>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                            <button 
+                              type="button" 
+                              onClick={() => removeBreak(day, breakTime.id)} 
+                              disabled={!schedule.enabled}
+                              className={`h-12 rounded-2xl border px-3 text-sm font-black transition ${
+                                !schedule.enabled 
+                                  ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed' 
+                                  : 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+                              }`}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className={`text-xs ${!schedule.enabled ? 'text-slate-400' : 'text-zinc-500'}`}>Tip: Configure one day then "Copy to all".</div>
+                    <button 
+                      type="button" 
+                      onClick={() => addBreak(day)} 
+                      disabled={!schedule.enabled}
+                      className={`inline-flex items-center justify-center rounded-2xl border px-4 py-2.5 text-sm font-bold transition focus:outline-none focus:ring-4 ${
+                        !schedule.enabled
+                          ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed focus:ring-slate-100'
+                          : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 focus:ring-zinc-100'
+                      }`}
+                    >
+                      Quick add
+                    </button>
                   </div>
                 </div>
-              )}
-
-              {!schedule.enabled && (
-                <div className="text-center py-8 text-slate-500">
-                  <p>This day is currently unavailable</p>
-                </div>
-              )}
+              </div>
             </div>
           );
         })}
@@ -730,19 +922,6 @@ export default function AvailabilityTimesheet({ onSave }: AvailabilityTimesheetP
           {saveMessage.text}
         </div>
       )}
-
-      <div className="mt-8 flex justify-end gap-3">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isSaving}
-          className={`px-8 py-3 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors font-medium ${
-            isSaving ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-        >
-          {isSaving ? 'Saving...' : 'Save Timesheet'}
-        </button>
-      </div>
     </div>
   );
 }

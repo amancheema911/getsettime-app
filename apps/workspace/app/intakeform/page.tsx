@@ -23,6 +23,7 @@ interface CustomField {
   id: string;
   label: string;
   field_type: 'text' | 'textarea' | 'number' | 'email' | 'tel' | 'url';
+  type?: 'text' | 'textarea' | 'number' | 'email' | 'tel' | 'url';
   required: boolean;
   placeholder?: string;
 }
@@ -277,20 +278,23 @@ export default function RoutingForm({ dark = false }) {
   const handleCustomFieldFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingCustomField) {
-      // Update existing field
+      // Update existing field - sync type for consumers that use field.type
+      const updated: CustomField = {
+        ...customFieldFormData,
+        type: customFieldFormData.field_type,
+      };
       setIntakeFormSettings({
         ...intakeFormSettings,
         custom_fields: intakeFormSettings.custom_fields.map((field) =>
-          field.id === editingCustomField.id
-            ? { ...customFieldFormData }
-            : field
+          field.id === editingCustomField.id ? updated : field
         ),
       });
     } else {
-      // Create new field
+      // Create new field - sync type so getCustomFieldType(field) finds it
       const newField: CustomField = {
         ...customFieldFormData,
         id: Date.now().toString(),
+        type: customFieldFormData.field_type,
       };
       setIntakeFormSettings({
         ...intakeFormSettings,

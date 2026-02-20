@@ -16,6 +16,7 @@ import {
   eachDayOfInterval,
 } from "date-fns";
 import AvailabilityTimesheet from '@/src/components/Settings/AvailabilityTimesheet';
+import { useWorkspaceSettings } from '@/src/hooks/useWorkspaceSettings';
 import { supabase } from "@/lib/supabaseClient";
 
 type TabType = 'general' | 'availability';
@@ -35,6 +36,7 @@ interface ServiceProvider {
 }
 
 export default function Availability() {
+  const { settings, loading: settingsLoading } = useWorkspaceSettings();
   const [activeTab, setActiveTab] = useState<TabType>('general');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState("week");
@@ -70,6 +72,12 @@ export default function Availability() {
   const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  /** Cached full availability from settings - used to re-derive when selectedProviderId changes without re-fetching */
+  const [settingsAvailability, setSettingsAvailability] = useState<{
+    timesheet: Record<DayName, DaySchedule> | null;
+    individual: Record<string, boolean> | undefined;
+    providers: Record<string, { timesheet?: Record<DayName, DaySchedule>; individual?: Record<string, boolean> }>;
+  } | null>(null);
 
   const formatHour = (hour: number) => {
     const suffix = hour >= 12 ? "PM" : "AM";
@@ -441,11 +449,50 @@ export default function Availability() {
     };
   }, [calendarOpen]);
 
+  // Apply merged availability from cached settings for a given providerId (no fetch)
+  const applyAvailabilityForProvider = (avail: NonNullable<typeof settingsAvailability>, providerId: string) => {
+    const generalTimesheet = avail.timesheet;
+    const generalIndividual = avail.individual;
+    const providerOverrides = avail.providers[providerId] ?? {};
+    const providerTimesheet = providerOverrides.timesheet as Record<DayName, DaySchedule> | null;
+    const providerIndividual = providerOverrides.individual as Record<string, boolean> | undefined;
+    const finalTimesheet = generalTimesheet ? { ...generalTimesheet, ...(providerTimesheet || {}) } : providerTimesheet;
+    const finalIndividual = { ...(generalIndividual || {}), ...(providerIndividual || {}) };
+
+    if (finalTimesheet) {
+      setTimesheet(finalTimesheet);
+      const derived = deriveAvailabilityFromTimesheet(finalTimesheet);
+      setHours(derived.hours);
+      setEnabled(derived.enabled);
+      setTimeSlots(Object.keys(finalIndividual).length ? finalIndividual : derived.timeSlots);
+    } else {
+      setTimesheet(null);
+      setEnabled({ Mon: true, Tue: true, Wed: true, Thu: true, Fri: true, Sat: false, Sun: false });
+      setTimeSlots(finalIndividual || {});
+      setHours(Array.from({ length: 12 }, (_, i) => i + 8));
+    }
+  };
+
+  // Use settings from WorkspaceSettingsProvider (single fetch app-wide). Only fetch team-members here.
   useEffect(() => {
-    const loadAvailability = async () => {
+    if (settingsLoading) return;
+
+    const av = settings?.availability as typeof settingsAvailability | undefined;
+    const availability: NonNullable<typeof settingsAvailability> = {
+      timesheet: (av?.timesheet ?? null) as Record<DayName, DaySchedule> | null,
+      individual: av?.individual as Record<string, boolean> | undefined,
+      providers: (av?.providers ?? {}) as NonNullable<typeof settingsAvailability>['providers'],
+    };
+    setSettingsAvailability(availability);
+  }, [settings, settingsLoading]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTeamMembers = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
+        if (!session || cancelled) return;
 
         const token = session.access_token;
         const userId = session.user.id;
@@ -453,112 +500,46 @@ export default function Availability() {
         setCurrentUserId(userId);
         setCurrentUserRole(userRole);
 
-        // If no provider selected yet, default to current user if they're a service provider
-        if (!selectedProviderId) {
+        const teamRes = await fetch("/api/team-members", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (cancelled) return;
+
+        let initialProviderId = selectedProviderId;
+        if (teamRes.ok) {
+          const data = await teamRes.json();
+          const providersList = (data.teamMembers || []).filter(
+            (m: { role: string; deactivated?: boolean }) => m.role === 'service_provider' && !m.deactivated
+          ) as ServiceProvider[];
+          setServiceProviders(providersList);
           if (userRole === 'service_provider') {
-            setSelectedProviderId(userId);
+            initialProviderId = userId;
+          } else if (providersList.length > 0 && !initialProviderId) {
+            initialProviderId = providersList[0].id;
           }
         }
-
-        const response = await fetch("/api/settings", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to load availability");
+        if (userRole === 'service_provider') {
+          initialProviderId = userId;
         }
 
-        const payload = await response.json();
-        const settings = payload?.settings ?? payload?.data?.settings ?? {};
-        const availability = settings.availability ?? {};
-        
-        // Load general/workspace-wide availability as the base
-        const generalTimesheet = availability.timesheet as Record<DayName, DaySchedule> | null;
-        const generalIndividual = availability.individual as Record<string, boolean> | undefined;
-        
-        // Check for provider-specific overrides
-        const providers = availability.providers ?? {};
-        const providerId = selectedProviderId || userId;
-        const providerOverrides = providers[providerId] ?? {};
-        
-        // Provider-specific overrides (only modified dates/times)
-        const providerTimesheet = providerOverrides.timesheet as Record<DayName, DaySchedule> | null;
-        const providerIndividual = providerOverrides.individual as Record<string, boolean> | undefined;
-
-        // Merge: Start with general, overlay provider-specific changes
-        const finalTimesheet = generalTimesheet ? { ...generalTimesheet, ...(providerTimesheet || {}) } : providerTimesheet;
-        const finalIndividual = { ...(generalIndividual || {}), ...(providerIndividual || {}) };
-
-        if (finalTimesheet) {
-          setTimesheet(finalTimesheet);
-          const derived = deriveAvailabilityFromTimesheet(finalTimesheet);
-          setHours(derived.hours);
-          setEnabled(derived.enabled);
-          setTimeSlots(Object.keys(finalIndividual).length ? finalIndividual : derived.timeSlots);
-        } else {
-          // Use defaults if no availability found
-          setTimesheet(null);
-          setEnabled({
-            Mon: true,
-            Tue: true,
-            Wed: true,
-            Thu: true,
-            Fri: true,
-            Sat: false,
-            Sun: false,
-          });
-          setTimeSlots(finalIndividual || {});
-          setHours(Array.from({ length: 12 }, (_, i) => i + 8));
-        }
+        if (cancelled) return;
+        setSelectedProviderId(initialProviderId);
       } catch (error) {
-        console.error("Error loading availability:", error);
+        if (!cancelled) console.error("Error loading team members:", error);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
-    loadAvailability();
-  }, [selectedProviderId]);
-
-  // Load service providers
-  useEffect(() => {
-    const loadServiceProviders = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-
-        const userRole = session.user.user_metadata?.role;
-        const userId = session.user.id;
-
-        const response = await fetch('/api/team-members', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const providers = (data.teamMembers || []).filter(
-            (member: any) => member.role === 'service_provider' && !member.deactivated
-          );
-          setServiceProviders(providers);
-
-          // Auto-select provider based on user role
-          if (userRole === 'service_provider') {
-            // Service providers can only edit their own availability
-            setSelectedProviderId(userId);
-          } else if (providers.length > 0 && !selectedProviderId) {
-            // Admins/managers can select any provider, default to first one
-            setSelectedProviderId(providers[0].id);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading service providers:', error);
-      }
-    };
-
-    loadServiceProviders();
+    loadTeamMembers();
+    return () => { cancelled = true; };
   }, []);
+
+  // Re-derive when selectedProviderId or settingsAvailability changes (no fetch)
+  useEffect(() => {
+    if (!settingsAvailability) return;
+    applyAvailabilityForProvider(settingsAvailability, selectedProviderId);
+  }, [selectedProviderId, settingsAvailability]);
 
   // Load bookings for the current view
   useEffect(() => {
@@ -682,7 +663,13 @@ export default function Availability() {
         <div className="relative">
           {activeTab === 'general' && (
             <div className="mt-0 pt-6">
-              <AvailabilityTimesheet />
+              {settingsLoading ? (
+                <div className="flex items-center justify-center py-12 text-slate-500">Loading...</div>
+              ) : (
+                <AvailabilityTimesheet
+                  initialTimesheet={settingsAvailability?.timesheet ?? null}
+                />
+              )}
             </div>
           )}
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { findOrCreateContact } from '@/lib/contact-linking';
 
 type DayName = "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat";
 
@@ -66,10 +67,10 @@ export async function GET(req: NextRequest) {
     const departmentId = searchParams.get('department_id') || '';
     const offset = (page - 1) * limit;
     
-    // Build query with search filter and event_types join
+    // Build query with search filter, event_types and contacts join
     let query = supabase
       .from('bookings')
-      .select('*, event_types(title)', { count: 'exact' })
+      .select('*, event_types(title), contacts(name, phone, email)', { count: 'exact' })
       .eq('workspace_id', workspaceId)
       .order('start_at', { ascending: false });
 
@@ -372,6 +373,15 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
     }
+
+    const contactId = await findOrCreateContact(
+      supabase,
+      workspaceId,
+      invitee_name?.trim() ?? '',
+      invitee_email?.trim() || null,
+      invitee_phone?.trim() || null
+    );
+
     const { data, error } = await supabase
       .from('bookings')
       .insert({
@@ -383,6 +393,7 @@ export async function POST(req: NextRequest) {
         invitee_name: invitee_name.trim(),
         invitee_email: invitee_email?.trim() || null,
         invitee_phone: invitee_phone?.trim() || null,
+        contact_id: contactId ?? null,
         start_at: start_at,
         end_at: end_at || null,
         status: status || 'pending',

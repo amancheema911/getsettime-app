@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import type { Booking } from '@/src/types/booking';
+import { type Booking, BOOKING_STATUSES } from '@/src/types/booking';
 
 interface EventType {
   id: string;
@@ -459,10 +459,11 @@ const BookingForm = ({ booking, onSave, onCancel }: BookingFormProps) => {
           onChange={(e) => setFormData({ ...formData, status: e.target.value })}
           className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
         >
-          <option value="pending">Pending</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="completed">Completed</option>
+          {BOOKING_STATUSES.map(({ value, label }) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
         </select>
       </div>
 

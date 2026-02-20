@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@app/db';
 import { verifyOTP, isOTPVerified } from '@/lib/otp-service';
+import { findOrCreateContact } from '@/lib/contact-linking';
 
 type DayName = "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat";
 
@@ -180,21 +181,17 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Verify OTP if provided
+    // Verify OTP if provided (optional for direct booking)
     if (otp_code && verified_identifier) {
       const identifier = verified_identifier.includes('@')
         ? normalizeEmail(verified_identifier)
         : normalizePhone(verified_identifier);
 
-      // First check if OTP was already verified (from the verify endpoint)
       const alreadyVerified = await isOTPVerified(identifier);
-      
       let isValid = false;
       if (alreadyVerified) {
-        // If already verified, just verify the code matches (for security)
         isValid = await verifyOTP(identifier, otp_code, false);
       } else {
-        // If not verified yet, verify it now
         isValid = await verifyOTP(identifier, otp_code, false);
       }
 
@@ -205,19 +202,11 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Delete OTP after successful booking creation
-      // This ensures OTP can only be used once for booking
       const supabaseForOTP = createSupabaseServerClient();
       await supabaseForOTP
         .from('otp_verifications')
         .delete()
         .eq('identifier', identifier);
-    } else {
-      // Require OTP verification for embed bookings
-      return NextResponse.json(
-        { error: 'OTP verification is required' },
-        { status: 400 }
-      );
     }
 
     // Verify workspace exists
@@ -382,6 +371,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const contactId = await findOrCreateContact(
+      supabase,
+      workspace_id,
+      invitee_name?.trim() ?? '',
+      invitee_email?.trim() || null,
+      invitee_phone?.trim() || null
+    );
+
     // Create booking with embed source
     const { data, error } = await supabase
       .from('bookings')
@@ -394,6 +391,7 @@ export async function POST(req: NextRequest) {
         invitee_name: invitee_name.trim(),
         invitee_email: invitee_email?.trim() || null,
         invitee_phone: invitee_phone?.trim() || null,
+        contact_id: contactId ?? null,
         start_at,
         end_at: end_at || null,
         status: bookingStatus,

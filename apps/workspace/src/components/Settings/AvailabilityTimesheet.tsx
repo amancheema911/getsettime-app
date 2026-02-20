@@ -19,6 +19,8 @@ interface DaySchedule {
 
 interface AvailabilityTimesheetProps {
   onSave?: (data: Record<DayName, DaySchedule>) => void;
+  /** When provided, skips the initial settings fetch and uses this data instead */
+  initialTimesheet?: Record<string, DaySchedule> | null;
 }
 
 const DAYS: DayName[] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -204,7 +206,7 @@ const calculateHours = (startTime: string, endTime: string): number => {
 //   );
 // };
 
-export default function AvailabilityTimesheet({ onSave }: AvailabilityTimesheetProps) {
+export default function AvailabilityTimesheet({ onSave, initialTimesheet }: AvailabilityTimesheetProps) {
   const [schedules, setSchedules] = useState<Record<DayName, DaySchedule>>(() => {
     const defaultSchedule: DaySchedule = {
       enabled: false,
@@ -223,13 +225,21 @@ export default function AvailabilityTimesheet({ onSave }: AvailabilityTimesheetP
     };
   });
 
-  const [isLoading, setIsLoading] = useState(true);
+  const hasInitialData = initialTimesheet !== undefined;
+  const [isLoading, setIsLoading] = useState(!hasInitialData);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
+    if (hasInitialData) {
+      if (initialTimesheet && Object.keys(initialTimesheet).length > 0) {
+        setSchedules((prev) => ({ ...prev, ...initialTimesheet }));
+      }
+      setIsLoading(false);
+      return;
+    }
     loadAvailability();
-  }, []);
+  }, [hasInitialData, initialTimesheet]);
 
   const loadAvailability = async () => {
     try {

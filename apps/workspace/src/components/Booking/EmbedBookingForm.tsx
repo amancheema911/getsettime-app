@@ -87,6 +87,29 @@ const isValidPhone = (phone: string): boolean => {
   return digits.length >= 7;
 };
 
+const isValidUrl = (url: string): boolean => {
+  const v = url.trim();
+  if (!v) return false;
+  if (!/^https?:\/\//i.test(v)) return false;
+  try {
+    const parsed = new URL(v);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+    const host = parsed.hostname;
+    const lastDot = host.lastIndexOf('.');
+    if (lastDot === -1 || lastDot === host.length - 1) return false;
+    const tld = host.slice(lastDot + 1);
+    return tld.length >= 1 && /^[a-zA-Z0-9-]+$/.test(tld);
+  } catch {
+    return false;
+  }
+};
+
+const isValidDate = (value: string): boolean => {
+  const v = value.trim();
+  if (!v) return false;
+  return !Number.isNaN(Date.parse(v));
+};
+
 const getCustomFieldType = (field: IntakeCustomField): IntakeCustomFieldType => {
   return (field.type || field.field_type || 'text') as IntakeCustomFieldType;
 };
@@ -124,15 +147,12 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
   const [intakeForm, setIntakeForm] = useState<IntakeFormSettings | undefined>(undefined);
   const [generalSettings, setGeneralSettings] = useState<{ primaryColor?: string; accentColor?: string } | null>(null);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<{ name?: boolean; email?: boolean; phone?: boolean }>({});
+  const [touchedCustomFields, setTouchedCustomFields] = useState<Record<string, boolean>>({});
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
   const [loadingBookings, setLoadingBookings] = useState(false);
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -864,9 +884,19 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
         continue;
       }
 
-      if (value && type === 'number') {
+      if (!value) continue;
+
+      if (type === 'number') {
         const n = Number(value);
         if (Number.isNaN(n)) errors[id] = `${label} must be a number`;
+      } else if (type === 'email') {
+        if (!isValidEmail(value)) errors[id] = `${label} must be a valid email`;
+      } else if (type === 'tel') {
+        if (!isValidPhone(value)) errors[id] = `${label} must be a valid phone number`;
+      } else if (type === 'url') {
+        if (!isValidUrl(value)) errors[id] = `${label} must be a valid URL (include http:// or https://)`;
+      } else if (type === 'date') {
+        if (!isValidDate(value)) errors[id] = `${label} must be a valid date`;
       }
     }
 
@@ -943,13 +973,6 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
     fetchDepartmentsWithProviders();
   }, [workspace.id]);
 
-  // Auto-skip to step 2 if no departments exist
-  useEffect(() => {
-    if (!loadingDepartments && departments.length === 0 && step === 1) {
-      setStep(2);
-    }
-  }, [loadingDepartments, departments.length, step]);
-
   // Fetch service providers when department is selected
   useEffect(() => {
     if (!selectedDepartment) {
@@ -1015,6 +1038,24 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
       setSelectedType(sortedEventTypes[0]);
     }
   }, [eventTypeSlug, targetDuration, sortedEventTypes, selectedType]);
+
+  // Event type pre-selected from URL (individual event type link)
+  const hasPreselectedEventType = Boolean((eventTypeSlug || targetDuration !== null) && selectedType && sortedEventTypes.length === 1);
+
+  // Auto-skip to step 2 (or step 3 if event type pre-selected from URL) if no departments exist
+  useEffect(() => {
+    if (!loadingDepartments && departments.length === 0 && step === 1) {
+      setStep(hasPreselectedEventType ? 3 : 2);
+    }
+  }, [loadingDepartments, departments.length, step, hasPreselectedEventType]);
+
+  // Auto-skip step 2 (Choose a service) when event type is pre-selected from URL
+  // Only skip event type selection; department selection (step 1) still shown when departments exist
+  useEffect(() => {
+    if (hasPreselectedEventType && step === 2) {
+      setStep(3);
+    }
+  }, [hasPreselectedEventType, step]);
 
   // Fetch availability settings for selected provider (or general settings if no departments)
   useEffect(() => {
@@ -1140,7 +1181,7 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
           // Filter out cancelled bookings and (if provider selected) bookings for other providers
           const activeBookings = (result.data || []).filter(
             (booking: Booking & { service_provider_id?: string }) => {
-              if (booking.status === 'cancelled') return false;
+              if (booking.status === 'cancelled' || booking.status === 'emergency') return false;
               if (selectedProvider && booking.service_provider_id !== selectedProvider.id) return false;
               return true;
             }
@@ -1175,9 +1216,6 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
         setEmail('');
         setPhone('');
         setNotes('');
-        setOtpCode('');
-        setOtpSent(false);
-        setOtpVerified(false);
         setConfirmed(false);
       }, 3700);
       return () => clearTimeout(t);
@@ -1214,77 +1252,6 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
     }
   }, [step, selectedDate]);
 
-  const handleSendOTP = async () => {
-    if (!phone.trim() && !email.trim()) {
-      setError('Please provide either phone or email');
-      return;
-    }
-
-    setSendingOtp(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/embed/otp/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: phone.trim() || null,
-          email: email.trim() || null,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send OTP');
-      }
-
-      setOtpSent(true);
-    } catch (err) {
-      const error = err as Error;
-      setError(error.message || 'Failed to send OTP');
-    } finally {
-      setSendingOtp(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    if (!otpCode.trim()) {
-      setError('Please enter the OTP code');
-      return;
-    }
-
-    setVerifyingOtp(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/embed/otp/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: phone.trim() || null,
-          email: email.trim() || null,
-          code: otpCode.trim(),
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Invalid OTP code');
-      }
-
-      setOtpVerified(true);
-    } catch (err) {
-      const error = err as Error;
-      setError(error.message || 'Invalid OTP code');
-    } finally {
-      setVerifyingOtp(false);
-    }
-  };
-
   const handleConfirm = async () => {
     if (!selectedType || !selectedDate || !selectedTime) {
       setError('Please fill in all required fields');
@@ -1299,11 +1266,6 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
         intakeValidation.phone ||
         intakeValidation.services;
       setError(firstError || 'Please fill in all required fields');
-      return;
-    }
-
-    if (!otpVerified) {
-      setError('Please verify your phone or email with OTP');
       return;
     }
 
@@ -1393,8 +1355,6 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
           invitee_phone: phoneEnabled ? (phone.trim() || null) : null,
           start_at: startDate.toISOString(),
           end_at: endDate.toISOString(),
-          otp_code: otpCode.trim(),
-          verified_identifier: phone.trim() || email.trim(),
           intake_form: Object.keys(intakeFormPayload).length > 0 ? intakeFormPayload : null,
         }),
       });
@@ -1405,7 +1365,7 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
       }
 
       setConfirmed(true);
-      setStep(6);
+      setStep(5);
     } catch (err) {
       const error = err as Error;
       setError(error.message || 'An error occurred');
@@ -1688,7 +1648,7 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
           <div className="p-4 sm:p-6 lg:p-8 xl:p-10 bg-white relative">
             {/* Progress Indicator */}
             <div className="flex items-center justify-center gap-2 sm:gap-3 mb-6 sm:mb-8 lg:mb-10 relative flex-wrap">
-              {[1, 2, 3, 4, 5, 6].map((s, index) => (
+              {[1, 2, 3, 4, 5].map((s, index) => (
                 <React.Fragment key={s}>
                   <div className="relative">
                     <div
@@ -1717,7 +1677,7 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
                       <div className="absolute inset-0 rounded-full animate-ping opacity-75" style={{ background: workspacePrimaryColor }} />
                     )}
                   </div>
-                  {index < 5 && (
+                  {index < 4 && (
                     <div
                       className={`h-1 w-6 sm:w-8 lg:w-12 rounded-full transition-all duration-500 hidden sm:block ${
                         s < step
@@ -1858,7 +1818,7 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
                   {selectedDepartment && selectedProvider && (
                     <div className="flex justify-end pt-4">
                       <button
-                        onClick={() => setStep(2)}
+                        onClick={() => setStep(hasPreselectedEventType ? 3 : 2)}
                         className="px-6 sm:px-10 py-3 sm:py-3.5 rounded-xl text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-xl hover:shadow-2xl hover:scale-105 transition-all font-semibold"
                       >
                         Continue to Services
@@ -2256,16 +2216,18 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 lg:mt-10 pt-6 sm:pt-8 border-t border-gray-200">
-                    <button
-                      onClick={() => {
-                        setStep(2);
-                        setSelectedDate(null);
-                        setSelectedTime('');
-                      }}
-                      className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all font-semibold text-gray-700 hover:shadow-md"
-                    >
-                      Back
-                    </button>
+                    {!(hasPreselectedEventType && departments.length === 0) && (
+                      <button
+                        onClick={() => {
+                          setStep(hasPreselectedEventType && departments.length > 0 ? 1 : 2);
+                          setSelectedDate(null);
+                          setSelectedTime('');
+                        }}
+                        className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all font-semibold text-gray-700 hover:shadow-md"
+                      >
+                        Back
+                      </button>
+                    )}
                     <button
                       disabled={!selectedDate || !selectedTime}
                       onClick={() => setStep(4)}
@@ -2307,11 +2269,17 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
                           <input
                             value={name}
                             onChange={(e) => setName(e.target.value)}
+                            onBlur={() => setTouched((t) => ({ ...t, name: true }))}
                             placeholder="Enter your full name"
                             className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-purple-500 transition-all bg-white hover:border-gray-300"
                             required
                           />
                         </div>
+                        {touched.name && intakeValidation.name && (
+                          <p className="mt-2 text-xs font-medium text-red-600">
+                            {intakeValidation.name}
+                          </p>
+                        )}
                       </div>
                     )}
                     {intakeForm?.email !== false && (
@@ -2325,12 +2293,18 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
                           <input
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
+                            onBlur={() => setTouched((t) => ({ ...t, email: true }))}
                             type="email"
                             placeholder="your.email@example.com"
                             className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-purple-500 transition-all bg-white hover:border-gray-300"
                             required
                           />
                         </div>
+                        {touched.email && intakeValidation.email && (
+                          <p className="mt-2 text-xs font-medium text-red-600">
+                            {intakeValidation.email}
+                          </p>
+                        )}
                       </div>
                     )}
                     {intakeForm?.phone === true && (
@@ -2344,12 +2318,18 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
                           <input
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
+                            onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
                             type="tel"
                             placeholder="+1 (555) 000-0000"
                             className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-purple-500 transition-all bg-white hover:border-gray-300"
                             required
                           />
                         </div>
+                        {touched.phone && intakeValidation.phone && (
+                          <p className="mt-2 text-xs font-medium text-red-600">
+                            {intakeValidation.phone}
+                          </p>
+                        )}
                       </div>
                     )}
 
@@ -2399,6 +2379,7 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
                       const required = field.required === true;
                       const placeholder = field.placeholder || '';
                       const baseClass = "w-full px-4 py-4 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-purple-500 transition-all bg-white hover:border-gray-300";
+                      const showError = Boolean(touchedCustomFields[field.id] && intakeValidation[field.id]);
 
                       if (type === 'textarea') {
                         return (
@@ -2411,6 +2392,7 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
                               onChange={(e) =>
                                 setCustomFieldValues((prev) => ({ ...prev, [field.id]: e.target.value }))
                               }
+                              onBlur={() => setTouchedCustomFields((prev) => ({ ...prev, [field.id]: true }))}
                               placeholder={placeholder}
                               className={`${baseClass} h-36 resize-none mt-2`}
                               required={required}
@@ -2430,6 +2412,7 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
                               onChange={(e) =>
                                 setCustomFieldValues((prev) => ({ ...prev, [field.id]: e.target.value }))
                               }
+                              onBlur={() => setTouchedCustomFields((prev) => ({ ...prev, [field.id]: true }))}
                               className={`${baseClass} mt-2`}
                               required={required}
                             >
@@ -2448,7 +2431,12 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
                       }
 
                       const inputType: React.HTMLInputTypeAttribute =
-                        type === 'number' ? 'number' : type === 'date' ? 'date' : 'text';
+                        type === 'number' ? 'number'
+                        : type === 'email' ? 'email'
+                        : type === 'tel' ? 'tel'
+                        : type === 'url' ? 'url'
+                        : type === 'date' ? 'date'
+                        : 'text';
 
                       return (
                         <div key={field.id} className="group">
@@ -2460,11 +2448,17 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
                             onChange={(e) =>
                               setCustomFieldValues((prev) => ({ ...prev, [field.id]: e.target.value }))
                             }
+                            onBlur={() => setTouchedCustomFields((prev) => ({ ...prev, [field.id]: true }))}
                             type={inputType}
                             placeholder={placeholder}
                             className={`${baseClass} mt-2`}
                             required={required}
                           />
+                          {showError && (
+                            <p className="mt-2 text-xs font-medium text-red-600">
+                              {intakeValidation[field.id]}
+                            </p>
+                          )}
                         </div>
                       );
                     })}
@@ -2496,158 +2490,47 @@ const EmbedBookingForm = ({ workspace, eventType, eventTypeSlug }: EmbedBookingF
                       Back
                     </button>
                     <button
-                      onClick={() => setStep(5)}
-                      disabled={!isStep4Valid}
-                      className={`w-full sm:w-auto sm:ml-auto px-6 sm:px-10 py-3 sm:py-3.5 rounded-xl text-white transition-all font-semibold ${
-                        !isStep4Valid
-                          ? 'bg-gray-300 cursor-not-allowed'
-                          : 'bg-gradient-to-r shadow-xl hover:shadow-2xl hover:scale-105'
+                      onClick={() => {
+                        if (!isStep4Valid) {
+                          setTouched({ name: true, email: true, phone: true });
+                          setTouchedCustomFields((prev) => ({
+                            ...prev,
+                            ...Object.fromEntries((intakeForm?.custom_fields || []).map((f) => [f.id, true])),
+                          }));
+                          return;
+                        }
+                        handleConfirm();
+                      }}
+                      disabled={loading || !isStep4Valid}
+                      className={`w-full sm:w-auto sm:ml-auto px-6 sm:px-10 py-3 sm:py-3.5 rounded-xl text-white transition-all font-semibold flex items-center justify-center gap-2 ${
+                        loading || !isStep4Valid ? 'bg-gray-300 cursor-not-allowed' : 'bg-gradient-to-r shadow-xl hover:shadow-2xl hover:scale-105'
                       }`}
                       style={
-                        !isStep4Valid
+                        loading || !isStep4Valid
                           ? undefined
                           : { background: `linear-gradient(to right, ${workspacePrimaryColor}, ${workspaceAccentColor})` }
                       }
                     >
-                      Continue
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 4: OTP Verification */}
-              {/* Step 5: OTP Verification */}
-              {step === 5 && (
-                <div className="space-y-4 sm:space-y-6 animate-fadeIn">
-                  <div className="text-center lg:text-left">
-                    <h2 className="text-2xl font-bold text-gray-900">Verify your contact</h2>
-                    <p className="text-xs sm:text-sm text-gray-500">Verify your contact information</p>
-                  </div>
-                  {!otpSent ? (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-blue-50 rounded-xl text-sm text-gray-700">
-                        We'll send a verification code to{' '}
-                        {phone.trim() ? `your phone` : `your email`}
-                      </div>
-                      <button
-                        onClick={handleSendOTP}
-                        disabled={sendingOtp}
-                        className={`w-full px-6 py-3 rounded-xl text-white transition ${
-                          sendingOtp ? 'bg-gray-300 cursor-not-allowed' : 'shadow-xl hover:shadow-2xl hover:scale-105'
-                        }`}
-                        style={
-                          sendingOtp
-                            ? undefined
-                            : { background: `linear-gradient(to right, ${workspacePrimaryColor}, ${workspaceAccentColor})` }
-                        }
-                      >
-                        {sendingOtp ? 'Sending...' : 'Send Verification Code'}
-                      </button>
-                    </div>
-                  ) : !otpVerified ? (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-green-50 rounded-xl text-sm text-gray-700">
-                        Verification code sent! Please check{' '}
-                        {phone.trim() ? `your phone` : `your email`}
-                      </div>
-                      <input
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value)}
-                        placeholder="Enter 6-digit code"
-                        maxLength={6}
-                        className="w-full p-3 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-purple-500 text-center text-2xl tracking-widest"
-                      />
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => {
-                            setOtpSent(false);
-                            setOtpCode('');
-                          }}
-                          className="px-4 py-2 rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all font-semibold text-gray-700"
-                        >
-                          Change Contact
-                        </button>
-                        <button
-                          onClick={handleVerifyOTP}
-                          disabled={verifyingOtp || !otpCode.trim()}
-                          className={`ml-auto px-6 py-2 rounded-xl text-white transition-all font-semibold ${
-                            verifyingOtp || !otpCode.trim()
-                              ? 'bg-gray-300 cursor-not-allowed'
-                              : 'shadow-xl hover:shadow-2xl hover:scale-105'
-                          }`}
-                          style={
-                            verifyingOtp || !otpCode.trim()
-                              ? undefined
-                              : { background: `linear-gradient(to right, ${workspacePrimaryColor}, ${workspaceAccentColor})` }
-                          }
-                        >
-                          {verifyingOtp ? 'Verifying...' : 'Verify'}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-green-100 rounded-xl text-sm text-green-700 flex items-center gap-2">
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                        Verified successfully!
-                      </div>
-                      <button
-                        onClick={handleConfirm}
-                        disabled={loading}
-                        className={`w-full px-6 py-3 rounded-xl text-white transition-all font-semibold flex items-center justify-center gap-2 ${
-                          loading ? 'bg-gray-300 cursor-not-allowed' : 'shadow-xl hover:shadow-2xl hover:scale-105'
-                        }`}
-                        style={
-                          loading
-                            ? undefined
-                            : { background: `linear-gradient(to right, ${workspacePrimaryColor}, ${workspaceAccentColor})` }
-                        }
-                      >
-                        {loading ? (
-                          <>
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>Creating...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>Confirm Booking</span>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 lg:mt-10 pt-6 sm:pt-8 border-t border-gray-200">
-                    <button
-                      onClick={() => {
-                        setStep(4);
-                        setOtpSent(false);
-                        setOtpVerified(false);
-                        setOtpCode('');
-                      }}
-                      className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all font-semibold text-gray-700 hover:shadow-md"
-                    >
-                      Back
+                      {loading ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Creating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Confirm Booking</span>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
               )}
 
               {/* Step 5: Success */}
-              {/* Step 6: Confirmation */}
-              {step === 6 && (
+              {step === 5 && (
                 <div className="flex flex-col items-center justify-center py-8 sm:py-12 lg:py-16 animate-fadeIn">
                   {/* Success Animation */}
                   <div className="relative mb-6 sm:mb-8">

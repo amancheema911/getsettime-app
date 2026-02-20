@@ -92,13 +92,15 @@ const isValidPhone = (phone: string): boolean => {
 const isValidUrl = (url: string): boolean => {
   const v = url.trim();
   if (!v) return false;
+  if (!/^https?:\/\//i.test(v)) return false;
   try {
-    // Accept both absolute URLs and protocol-less domains by requiring protocol.
-    // This keeps validation predictable for users.
-    // If you want to accept "example.com", you can prepend "https://" before parsing.
-    // For now, require a protocol.
     const parsed = new URL(v);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+    const host = parsed.hostname;
+    const lastDot = host.lastIndexOf('.');
+    if (lastDot === -1 || lastDot === host.length - 1) return false;
+    const tld = host.slice(lastDot + 1);
+    return tld.length >= 1 && /^[a-zA-Z0-9-]+$/.test(tld);
   } catch {
     return false;
   }
@@ -808,15 +810,18 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
       }
     };
 
-    // Check immediately in case we're already near the end
-    checkAndLoadMore();
+    // Defer initial check until DOM has laid out (container has correct scroll dimensions)
+    const rafId = requestAnimationFrame(() => {
+      checkAndLoadMore();
+    });
 
     container.addEventListener('scroll', checkAndLoadMore, { passive: true });
     
     return () => {
+      cancelAnimationFrame(rafId);
       container.removeEventListener('scroll', checkAndLoadMore);
     };
-  }, [step, loadMoreDates, days.length]);
+  }, [step, loadMoreDates, days.length, showCalendar]);
 
   // Fetch departments and filter only those with service providers
   useEffect(() => {
@@ -1150,7 +1155,7 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
           // Filter out cancelled bookings and (if provider selected) bookings for other providers
           const activeBookings = (result.data || []).filter(
             (booking: Booking & { service_provider_id?: string }) => {
-              if (booking.status === 'cancelled') return false;
+              if (booking.status === 'cancelled' || booking.status === 'emergency') return false;
               if (selectedProvider && booking.service_provider_id !== selectedProvider.id) return false;
               return true;
             }
@@ -2087,16 +2092,7 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
                     <p className="text-xs sm:text-sm text-gray-500">Select when you'd like to meet</p>
                   </div>
 
-                  {/* Show loading state while availability and bookings are being fetched */}
-                  {!availabilitySettings || loadingAvailability || loadingBookings ? (
-                    <div className="text-center py-16">
-                      <div className="inline-flex items-center gap-3 text-gray-500">
-                        <div className="w-6 h-6 border-[3px] border-purple-600 border-t-transparent rounded-full animate-spin" />
-                        <span>Loading availability...</span>
-                      </div>
-                    </div>
-                  ) : (
-                  <>
+                  {/* Date picker - always visible, loads more dates when scroller reaches end */}
                   <div>
                     <div className="flex items-center justify-between mb-3 sm:mb-4">
                       <div className="flex items-center gap-2">
@@ -2227,10 +2223,11 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
                       <div ref={scrollContainerRef} className="flex gap-2 sm:gap-3 overflow-x-auto py-2 sm:pb-3 -mx-1 px-1 scroll-smooth">
                         {days
                           .filter((d) => {
-                            // Only show dates that are available (enabled in timesheet and not in the past)
-                            const isAvailable = isDateAvailable(d);
                             const isPast = d < new Date() && !isToday(d);
-                            return isAvailable && !isPast;
+                            if (isPast) return false;
+                            // When availability not yet loaded, show all future dates
+                            if (!availabilitySettings || !availabilitySettings.timesheet) return true;
+                            return isDateAvailable(d);
                           })
                           .map((d) => {
                             const isSelected = selectedDate?.toDateString() === d.toDateString();
@@ -2257,9 +2254,14 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
                                 isDisabled
                                   ? 'bg-gray-50 border-2 border-gray-200 text-gray-300 cursor-not-allowed opacity-60'
                                   : isSelected
-                                  ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-xl scale-105 ring-2 sm:ring-4 ring-purple-200 z-10'
+                                  ? 'bg-gradient-to-br text-white shadow-xl scale-105 ring-2 sm:ring-4 ring-purple-200 z-10'
                                   : 'bg-white border-2 border-gray-200 hover:border-purple-400 hover:shadow-lg hover:scale-105'
                               }`}
+                              style={
+                                isSelected && !isDisabled
+                                  ? { background: `linear-gradient(to bottom right, ${workspacePrimaryColor || '#9333EA'}, ${workspaceAccentColor || workspacePrimaryColor || '#3B82F6'})` }
+                                  : undefined
+                              }
                             >
                               {isSelected && !isDisabled && (
                                 <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
@@ -2293,7 +2295,7 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
                                   {d.toLocaleDateString(undefined, { month: 'short' })}
                                 </div>
                                 {isTodayDate && !isSelected && !isDisabled && (
-                                  <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-purple-600" />
+                                  <div className="absolute top-0 right-0 w-2 h-2 rounded-full" style={{ background: workspacePrimaryColor || '#9333EA' }} />
                                 )}
                               </div>
                             </button>
@@ -2386,8 +2388,6 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
                       Continue
                     </button>
                   </div>
-                  </>
-                  )}
                 </div>
               )}
 
@@ -2584,7 +2584,12 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
                       }
 
                       const inputType: React.HTMLInputTypeAttribute =
-                        type === 'number' ? 'number' : type === 'date' ? 'date' : 'text';
+                        type === 'number' ? 'number'
+                        : type === 'email' ? 'email'
+                        : type === 'tel' ? 'tel'
+                        : type === 'url' ? 'url'
+                        : type === 'date' ? 'date'
+                        : 'text';
 
                       return (
                         <div key={field.id} className="group">

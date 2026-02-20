@@ -1,5 +1,6 @@
 "use client";
 import { AuthProvider, useAuth } from "../../providers/AuthProvider";
+import { WorkspaceSettingsProvider } from "../../providers/WorkspaceSettingsProvider";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "../Sidebar/Sidebar";
@@ -9,7 +10,7 @@ import Topbar from "./Topbar";
 const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/login", "/auth/register", "/auth/forgot-password", "/auth/callback", "/invite-accept"];
 
 // Reserved first path segments (app routes) - embed booking uses /[workspaceSlug] or /[workspaceSlug]/[eventTypeSlug]
-const RESERVED_FIRST_SEGMENTS = ['login', 'register', 'forgot-password', 'reset-password', 'auth', 'invite-accept', 'event-type', 'intakeform', 'notifications', 'availability', 'team-members', 'departments', 'services', 'profile', 'integrations', 'contacts', 'billings', 'bookings', 'settings', 'api', '_next'];
+const RESERVED_FIRST_SEGMENTS = ['login', 'register', 'forgot-password', 'reset-password', 'auth', 'invite-accept', 'event-type', 'intakeform', 'notifications', 'availability', 'team-members', 'departments', 'services', 'profile', 'integrations', 'contacts', 'billings', 'bookings', 'emergency-booking', 'settings', 'api', '_next'];
 function isPublicRoutePattern(pathname: string): boolean {
   const segments = pathname.split('/').filter(Boolean);
   return (segments.length === 1 || segments.length === 2) && !RESERVED_FIRST_SEGMENTS.includes(segments[0]);
@@ -69,11 +70,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <WorkspaceSettingsProvider>
     <div className="flex min-h-screen relative w-full overflow-x-hidden">
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-white/50 backdrop-blur-sm z-30 lg:hidden" onClick={closeSidebar} aria-hidden="true"/>
       )}
-      <Sidebar isOpen={isSidebarOpen} />
+      <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
       <div className="flex-1 flex flex-col w-full min-w-0 ml-0 lg:ml-64 transition-all duration-300">
         <Topbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
         <main className="flex-1 p-4 lg:p-8 w-full max-w-full overflow-x-hidden bg-gray-100">
@@ -83,6 +85,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
+    </WorkspaceSettingsProvider>
   );
 }
 

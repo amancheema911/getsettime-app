@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
-import type { Booking } from '@/src/types/booking';
+import { type Booking, BOOKING_STATUSES } from '@/src/types/booking';
 import BookingForm from './BookingForm';
 import MultiStepBookingForm from './MultiStepBookingForm';
 
@@ -19,6 +19,11 @@ interface PaginationInfo {
 interface EventType {
   id: string;
   title: string;
+}
+
+interface Department {
+  id: string;
+  name: string;
 }
 
 interface ServiceProvider {
@@ -73,6 +78,7 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
   const [statusFilter, setStatusFilter] = useState('');
   const [eventTypeFilter, setEventTypeFilter] = useState('');
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [intakeFormSettings, setIntakeFormSettings] = useState<IntakeFormSettings | null>(null);
@@ -206,6 +212,21 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
       }
     };
 
+    const fetchDepartments = async () => {
+      try {
+        const { supabase } = await import('@/lib/supabaseClient');
+        const { data, error } = await supabase
+          .from('departments')
+          .select('id, name')
+          .order('name');
+        if (!error && data) {
+          setDepartments(data.map((d) => ({ id: String(d.id), name: d.name })));
+        }
+      } catch (err) {
+        console.error('Error fetching departments:', err);
+      }
+    };
+
     const fetchServices = async () => {
       try {
         const { supabase } = await import('@/lib/supabaseClient');
@@ -267,6 +288,7 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
     };
 
     fetchEventTypes();
+    fetchDepartments();
     fetchServiceProviders();
     fetchServices();
     fetchIntakeFormSettings();
@@ -382,10 +404,23 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
     return provider?.raw_user_meta_data?.full_name || provider?.raw_user_meta_data?.name || provider?.email || 'N/A';
   };
 
+  const getDepartmentName = (departmentId: string | null): string => {
+    if (!departmentId) return 'N/A';
+    const dept = departments.find((d) => String(d.id) === String(departmentId));
+    return dept?.name || 'N/A';
+  };
+
+  const getDisplayName = (b: Booking) =>
+    b.invitee_name?.trim() || b.contacts?.name?.trim() || 'N/A';
+  const getDisplayEmail = (b: Booking) =>
+    b.invitee_email?.trim() || b.contacts?.email?.trim() || 'N/A';
+  const getDisplayPhone = (b: Booking) =>
+    b.invitee_phone?.trim() || b.contacts?.phone?.trim() || 'N/A';
+
   // Transform bookings for display
   const displayBookings = bookings.map((booking) => ({
     id: booking.id,
-    name: booking.invitee_name || 'N/A',
+    name: getDisplayName(booking),
     notes: booking.metadata?.['notes'] || 'N/A',
     date: formatDate(booking.start_at),
     time: formatTime(booking.start_at),
@@ -518,11 +553,9 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
               aria-label="Filter by status"
             >
               <option value="">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="completed">Completed</option>
-              <option value="reschedule">Reschedule</option>
+              {BOOKING_STATUSES.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
             </select>
           </div>
 
@@ -747,15 +780,15 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
                 <div className="space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="text-sm font-medium text-slate-600 w-32">Name:</span>
-                    <span className="text-slate-800">{selectedBooking.invitee_name || 'N/A'}</span>
+                    <span className="text-slate-800">{getDisplayName(selectedBooking)}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="text-sm font-medium text-slate-600 w-32">Email:</span>
-                    <span className="text-slate-800">{selectedBooking.invitee_email || 'N/A'}</span>
+                    <span className="text-slate-800">{getDisplayEmail(selectedBooking)}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="text-sm font-medium text-slate-600 w-32">Phone:</span>
-                    <span className="text-slate-800">{selectedBooking.invitee_phone || 'N/A'}</span>
+                    <span className="text-slate-800">{getDisplayPhone(selectedBooking)}</span>
                   </div>
                 </div>
               </div>
@@ -788,6 +821,14 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
                       {selectedBooking.status || 'Pending'}
                     </span>
                   </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="text-sm font-medium text-slate-600 w-32">Department:</span>
+                    <span className="text-slate-800">{getDepartmentName(selectedBooking.department_id)}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="text-sm font-medium text-slate-600 w-32">Service Provider:</span>
+                    <span className="text-slate-800">{getServiceProviderName(selectedBooking.service_provider_id)}</span>
+                  </div>
                 </div>
               </div>
 
@@ -796,22 +837,14 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
                 <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Date & Time</h4>
                 <div className="space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="text-sm font-medium text-slate-600 w-32">Start Date:</span>
-                    <span className="text-slate-800">{formatDate(selectedBooking.start_at)}</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="text-sm font-medium text-slate-600 w-32">Start Time:</span>
-                    <span className="text-slate-800">{formatTime(selectedBooking.start_at)}</span>
+                    <span className="text-sm font-medium text-slate-600 w-32">Start Date/Time:</span>
+                    <span className="text-slate-800">{formatDate(selectedBooking.start_at)}, {formatTime(selectedBooking.start_at)}</span>
                   </div>
                   {selectedBooking.end_at && (
                     <>
                       <div className="flex flex-col sm:flex-row sm:items-center">
-                        <span className="text-sm font-medium text-slate-600 w-32">End Date:</span>
-                        <span className="text-slate-800">{formatDate(selectedBooking.end_at)}</span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center">
-                        <span className="text-sm font-medium text-slate-600 w-32">End Time:</span>
-                        <span className="text-slate-800">{formatTime(selectedBooking.end_at)}</span>
+                        <span className="text-sm font-medium text-slate-600 w-32">End Date/Time:</span>
+                        <span className="text-slate-800">{formatDate(selectedBooking.end_at)}, {formatTime(selectedBooking.end_at)}</span>
                       </div>
                     </>
                   )}
@@ -888,7 +921,8 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
                 const intakeForm = selectedBooking.metadata?.intake_form as Record<string, unknown> | undefined;
                 const notes = intakeForm?.additional_description as string | undefined;
                 const legacyNotes = selectedBooking.metadata?.notes as string | undefined;
-                const displayNotes = notes || legacyNotes;
+                const additional_description = selectedBooking.metadata?.additional_description as string | undefined;
+                const displayNotes = notes || legacyNotes || additional_description;
                 
                 return (
                   <div>

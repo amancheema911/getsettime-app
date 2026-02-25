@@ -22,6 +22,8 @@ interface BookingPreviewSidebarProps {
   email: string;
   phone: string;
   notes: string;
+  /** IANA timezone for time display (workspace or browser); fixes Android 4pm→4am bug */
+  displayTimezone?: string | null;
 }
 
 export function BookingPreviewSidebar({
@@ -41,6 +43,7 @@ export function BookingPreviewSidebar({
   email,
   phone,
   notes,
+  displayTimezone,
 }: BookingPreviewSidebarProps) {
   const primary = workspacePrimaryColor || DEFAULT_PRIMARY_COLOR;
   const accent = workspaceAccentColor || workspacePrimaryColor || DEFAULT_ACCENT_COLOR;
@@ -195,7 +198,7 @@ export function BookingPreviewSidebar({
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Time</div>
                   </div>
                   <div className="font-bold text-gray-900 text-base sm:text-lg pl-9 sm:pl-11">
-                    {formatTimeWithTimezone(selectedDate, selectedTime)}
+                    {formatTimeWithTimezone(selectedDate, selectedTime, displayTimezone)}
                   </div>
                 </div>
               )}

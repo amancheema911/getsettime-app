@@ -7,6 +7,7 @@ export default function SettingsPage() {
   const [workspaceSlug, setWorkspaceSlug] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#2ECC71');
   const [accentColor, setAccentColor] = useState('#673AB7');
+  const [timezone, setTimezone] = useState('');
   const [logoFileName, setLogoFileName] = useState('No file selected');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoPath, setLogoPath] = useState<string | null>(null);
@@ -82,6 +83,7 @@ export default function SettingsPage() {
           const general = settings.general || {};
           if (general.primaryColor) setPrimaryColor(general.primaryColor);
           if (general.accentColor) setAccentColor(general.accentColor);
+          setTimezone(general.timezone || '');
         }
       }
     } catch (error) {
@@ -173,11 +175,12 @@ export default function SettingsPage() {
         throw new Error(result.error || 'Failed to save workspace settings');
       }
 
-      // Save other settings (colors) to configurations table
+      // Save other settings (colors, timezone) to configurations table
       const settingsData = {
         general: {
           primaryColor,
           accentColor,
+          timezone: timezone.trim() || undefined,
         },
       };
 
@@ -321,6 +324,36 @@ export default function SettingsPage() {
                       placeholder="#673AB7"
                     />
                   </div>
+                </div>
+
+                {/* Timezone */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Timezone
+                  </label>
+                  <input
+                    type="text"
+                    list="timezone-options"
+                    value={timezone}
+                    onChange={(e) => setTimezone(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g. Asia/Kolkata (leave empty to use visitor's timezone)"
+                  />
+                  <datalist id="timezone-options">
+                    <option value="Asia/Kolkata" />
+                    <option value="America/New_York" />
+                    <option value="America/Los_Angeles" />
+                    <option value="America/Chicago" />
+                    <option value="Europe/London" />
+                    <option value="Europe/Paris" />
+                    <option value="Asia/Dubai" />
+                    <option value="Asia/Singapore" />
+                    <option value="Australia/Sydney" />
+                    <option value="UTC" />
+                  </datalist>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Used for booking times in sidebar, emails, and API. IANA format (e.g. Asia/Kolkata).
+                  </p>
                 </div>
 
                 {/* Logo Upload */}

@@ -10,6 +10,7 @@ import { DEFAULT_ACCENT_COLOR, DEFAULT_PRIMARY_COLOR, SUCCESS_REDIRECT_MS } from
 import { sortEventTypesByDuration } from '../../utils/bookingFormUtils';
 import { isServicesEnabled } from '../../utils/intakeForm';
 import { isTimeSlotBooked, normalizeDate } from '../../utils/bookingTime';
+import { getDisplayTimezone, parseTimeStringTo24h } from '../../utils/timezone';
 
 import { BookingPreviewSidebar } from './MultiStepBooking/BookingPreviewSidebar';
 import { ProgressIndicator } from './MultiStepBooking/ProgressIndicator';
@@ -226,14 +227,14 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
         if (configData?.settings?.notifications?.['auto-confirm-booking'] === true) bookingStatus = 'confirmed';
       }
 
-      const [time, period] = selectedTime.split(' ');
-      const [hours, minutes] = time.split(':');
-      let hour24 = parseInt(hours, 10);
-      if (period === 'PM' && hour24 !== 12) hour24 += 12;
-      if (period === 'AM' && hour24 === 12) hour24 = 0;
-
+      const parsed = parseTimeStringTo24h(selectedTime);
+      if (!parsed) {
+        setError('Invalid time selection. Please try again.');
+        setLoading(false);
+        return;
+      }
       const startDate = new Date(selectedDate);
-      startDate.setHours(hour24, parseInt(minutes, 10), 0, 0);
+      startDate.setHours(parsed.hour, parsed.minute, 0, 0);
       if (startDate < new Date()) {
         setError('Cannot book a time slot in the past. Please select a future time.');
         setLoading(false);
@@ -270,7 +271,7 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
       if (additionalDescriptionEnabled && notes.trim()) metadata.notes = notes.trim();
       if (Object.keys(intakeFormPayload).length > 0) metadata.intake_form = intakeFormPayload;
 
-      const timezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined;
+      const timezone = getDisplayTimezone(general?.timezone);
 
       const res = await fetch('/api/bookings', {
         method: 'POST',
@@ -331,6 +332,7 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
             email={email}
             phone={phone}
             notes={notes}
+            displayTimezone={getDisplayTimezone(general?.timezone)}
           />
           <div className="p-4 sm:p-6 lg:p-8 xl:p-10 bg-white relative">
             <ProgressIndicator step={step} />

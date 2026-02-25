@@ -501,6 +501,7 @@ export async function POST(req: NextRequest) {
           endTime: end_at || start_at,
           duration: durationMinutes,
           notes: metadata?.notes || undefined,
+          ...(clientTimezone ? { timezone: clientTimezone } : {}),
         };
 
         const emailResult = await sendBookingConfirmationEmails(emailData);
@@ -518,7 +519,7 @@ export async function POST(req: NextRequest) {
     try {
       if (invitee_phone && invitee_phone.trim()) {
         const origin = new URL(req.url).origin;
-        const when = new Date(start_at).toLocaleString('en-US', {
+        const whenOpts: Intl.DateTimeFormatOptions = {
           weekday: 'short',
           year: 'numeric',
           month: 'short',
@@ -526,7 +527,9 @@ export async function POST(req: NextRequest) {
           hour: '2-digit',
           minute: '2-digit',
           timeZoneName: 'short',
-        });
+          ...(clientTimezone?.trim() && { timeZone: clientTimezone.trim() }),
+        };
+        const when = new Date(start_at).toLocaleString('en-US', whenOpts);
 
         // const message = [
         //   'Booking confirmed',

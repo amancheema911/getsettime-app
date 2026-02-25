@@ -24,12 +24,14 @@ interface BookingEmailData {
   endTime: string;
   duration: number;
   notes?: string;
+  /** IANA timezone (e.g. Asia/Kolkata) for displaying booking time in recipient's timezone */
+  timezone?: string;
 }
 
-// Format date and time for email
-const formatDateTime = (dateString: string): string => {
+// Format date and time for email (uses timezone when provided to avoid UTC on server)
+const formatDateTime = (dateString: string, timezone?: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleString('en-US', {
+  const options: Intl.DateTimeFormatOptions = {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -37,7 +39,9 @@ const formatDateTime = (dateString: string): string => {
     hour: '2-digit',
     minute: '2-digit',
     timeZoneName: 'short',
-  });
+    ...(timezone?.trim() && { timeZone: timezone.trim() }),
+  };
+  return date.toLocaleString('en-US', options);
 };
 
 // Email template for the user (invitee)
@@ -81,10 +85,10 @@ const getUserEmailTemplate = (data: BookingEmailData): string => {
           <span class="label">Service Provider:</span> ${providerLabel}
         </div>
         <div class="detail-row">
-          <span class="label">Start Time:</span> ${formatDateTime(data.startTime)}
+          <span class="label">Start Time:</span> ${formatDateTime(data.startTime, data.timezone)}
         </div>
         <div class="detail-row">
-          <span class="label">End Time:</span> ${formatDateTime(data.endTime)}
+          <span class="label">End Time:</span> ${formatDateTime(data.endTime, data.timezone)}
         </div>
         <div class="detail-row">
           <span class="label">Duration:</span> ${data.duration} minutes
@@ -154,10 +158,10 @@ const getProviderEmailTemplate = (data: BookingEmailData): string => {
           <span class="label">Department:</span> ${departmentLabel}
         </div>
         <div class="detail-row">
-          <span class="label">Start Time:</span> ${formatDateTime(data.startTime)}
+          <span class="label">Start Time:</span> ${formatDateTime(data.startTime, data.timezone)}
         </div>
         <div class="detail-row">
-          <span class="label">End Time:</span> ${formatDateTime(data.endTime)}
+          <span class="label">End Time:</span> ${formatDateTime(data.endTime, data.timezone)}
         </div>
         <div class="detail-row">
           <span class="label">Duration:</span> ${data.duration} minutes

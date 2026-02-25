@@ -44,7 +44,7 @@ export function useEmbedBookingFormData({
   const [services, setServices] = useState<Service[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [settingsIntakeForm, setSettingsIntakeForm] = useState<IntakeFormSettings | undefined>(undefined);
-  const [generalSettings, setGeneralSettings] = useState<{ primaryColor?: string; accentColor?: string } | null>(null);
+  const [generalSettings, setGeneralSettings] = useState<{ primaryColor?: string; accentColor?: string; timezone?: string } | null>(null);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -52,7 +52,7 @@ export function useEmbedBookingFormData({
         const res = await fetch(`/api/embed/settings?workspace_id=${workspace.id}`);
         if (!res.ok) return;
         const data: {
-          settings?: { intake_form?: IntakeFormSettings; general?: { primaryColor?: string; accentColor?: string } };
+          settings?: { intake_form?: IntakeFormSettings; general?: { primaryColor?: string; accentColor?: string; timezone?: string } };
         } = await res.json();
         setSettingsIntakeForm(data.settings?.intake_form);
         setGeneralSettings(data.settings?.general || null);

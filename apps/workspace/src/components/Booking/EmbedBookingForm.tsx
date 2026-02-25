@@ -13,6 +13,7 @@ import {
 } from '@/src/constants/booking';
 import { isServicesEnabled } from '@/src/utils/intakeForm';
 import { isTimeSlotBooked, normalizeDate } from '@/src/utils/bookingTime';
+import { getDisplayTimezone, parseTimeStringTo24h } from '@/src/utils/timezone';
 import {
   getSortedFilteredEventTypes,
   parseEventTypeDurationParam,
@@ -240,14 +241,14 @@ export default function EmbedBookingForm({ workspace, eventType, eventTypeSlug }
     setError(null);
 
     try {
-      const [time, period] = selectedTime.split(' ');
-      const [hours, minutes] = time.split(':');
-      let hour24 = parseInt(hours, 10);
-      if (period === 'PM' && hour24 !== 12) hour24 += 12;
-      if (period === 'AM' && hour24 === 12) hour24 = 0;
-
+      const parsed = parseTimeStringTo24h(selectedTime);
+      if (!parsed) {
+        setError('Invalid time selection. Please try again.');
+        setLoading(false);
+        return;
+      }
       const startDate = new Date(selectedDate);
-      startDate.setHours(hour24, parseInt(minutes, 10), 0, 0);
+      startDate.setHours(parsed.hour, parsed.minute, 0, 0);
       if (startDate < new Date()) {
         setError('Cannot book a time slot in the past. Please select a future time.');
         setLoading(false);
@@ -280,7 +281,7 @@ export default function EmbedBookingForm({ workspace, eventType, eventTypeSlug }
         if (v) intakeFormPayload[field.id] = v;
       }
 
-      const timezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined;
+      const timezone = getDisplayTimezone(generalSettings?.timezone);
 
       const res = await fetch('/api/embed/bookings', {
         method: 'POST',
@@ -347,6 +348,7 @@ export default function EmbedBookingForm({ workspace, eventType, eventTypeSlug }
             email={email}
             phone={phone}
             notes={notes}
+            displayTimezone={getDisplayTimezone(generalSettings?.timezone)}
           />
           <div className="p-4 sm:p-6 lg:p-8 xl:p-10 bg-white relative">
             <ProgressIndicator step={step} />

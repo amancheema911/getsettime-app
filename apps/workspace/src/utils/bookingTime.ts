@@ -1,5 +1,6 @@
 import type { BreakTime, Booking, DayName } from '@/src/types/bookingForm';
 import { DAY_NAMES } from '@/src/constants/booking';
+import { formatDateTimeForDisplay } from './timezone';
 
 /** Parse time string (HH:mm) to minutes since midnight */
 export function parseTimeToMinutes(time: string): number {
@@ -7,13 +8,13 @@ export function parseTimeToMinutes(time: string): number {
   return hours * 60 + minutes;
 }
 
-/** Format minutes since midnight to display time (12h format) */
+/** Format minutes since midnight to display time (12h format). Uses en-US for consistent "4:00 PM" output across iOS/Android. */
 export function formatMinutesToDisplay(minutes: number): string {
   const hour = Math.floor(minutes / 60);
   const minute = minutes % 60;
   const date = new Date();
   date.setHours(hour, minute, 0, 0);
-  return date.toLocaleTimeString(undefined, {
+  return date.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
@@ -112,20 +113,13 @@ export function formatDateWithTimezone(date: Date): string {
   });
 }
 
-export function formatTimeWithTimezone(date: Date, timeString: string): string {
-  const [time, period] = timeString.split(' ');
-  const [hours, minutes] = time.split(':');
-  let hour24 = parseInt(hours, 10);
-  if (period === 'PM' && hour24 !== 12) hour24 += 12;
-  if (period === 'AM' && hour24 === 12) hour24 = 0;
-  const dateTime = new Date(date);
-  dateTime.setHours(hour24, parseInt(minutes, 10), 0, 0);
-  return dateTime.toLocaleString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-    timeZoneName: 'short',
-  });
+/** Format date+time for display. Android-safe parsing; accepts optional timezone for workspace override. */
+export function formatTimeWithTimezone(
+  date: Date,
+  timeString: string,
+  timezone?: string | null
+): string {
+  return formatDateTimeForDisplay(date, timeString, timezone);
 }
 
 /** Get calendar days for a month (including prev/next month padding for 6-week grid) */

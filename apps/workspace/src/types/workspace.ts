@@ -30,6 +30,8 @@ export type GeneralSettings = {
   logoUrl?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
+  /** IANA timezone (e.g. Asia/Kolkata) for booking display; fallback to browser if unset */
+  timezone?: string | null;
 };
 
 export type IntakeFormServiceSettings = {

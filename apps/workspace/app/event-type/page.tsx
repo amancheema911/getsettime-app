@@ -473,7 +473,9 @@ export default function EventTypes() {
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {items.map((item) => (
+          {[...items]
+            .sort((a, b) => (a.duration_minutes ?? Infinity) - (b.duration_minutes ?? Infinity))
+            .map((item) => (
             <div
               key={item.id}
               className="rounded-2xl border border-slate-100 bg-white shadow-md hover:shadow-lg transition-transform hover:-translate-y-1"

@@ -445,18 +445,63 @@ export default function AvailabilityTimesheet({ onSave, initialTimesheet }: Avai
 
   const addBreak = (day: DayName) => {
     const daySchedule = schedules[day];
-    // Calculate a valid default break time (middle of the day, 1 hour duration)
     const [startHours, startMins] = daySchedule.startTime.split(':').map(Number);
     const [endHours, endMins] = daySchedule.endTime.split(':').map(Number);
     const startTotal = startHours * 60 + startMins;
     const endTotal = endHours * 60 + endMins;
-    const midTotal = Math.floor((startTotal + endTotal) / 2);
-    const breakStartHours = Math.floor(midTotal / 60) % 24;
-    const breakStartMins = midTotal % 60;
-    const breakEndTotal = Math.min(midTotal + 60, endTotal - 30); // 1 hour break, but at least 30 min before day end
+    const minBreakDuration = 30;
+    const defaultBreakDuration = 60;
+
+    let breakStartTotal: number;
+    let breakEndTotal: number;
+
+    if (daySchedule.breaks.length === 0) {
+      // No breaks yet: use middle of the day
+      const midTotal = Math.floor((startTotal + endTotal) / 2);
+      breakStartTotal = midTotal;
+      breakEndTotal = Math.min(midTotal + defaultBreakDuration, endTotal - 30);
+    } else {
+      // Find next available slot after existing breaks
+      const sortedBreaks = [...daySchedule.breaks].sort((a, b) => {
+        const aStart = a.start.split(':').map(Number);
+        const bStart = b.start.split(':').map(Number);
+        return (aStart[0] * 60 + aStart[1]) - (bStart[0] * 60 + bStart[1]);
+      });
+
+      const gaps: Array<{ start: number; end: number }> = [];
+      let gapStart = startTotal;
+      for (const b of sortedBreaks) {
+        const [bStartH, bStartM] = b.start.split(':').map(Number);
+        const [bEndH, bEndM] = b.end.split(':').map(Number);
+        const bStartTotal = bStartH * 60 + bStartM;
+        const bEndTotal = bEndH * 60 + bEndM;
+        if (bStartTotal > gapStart) {
+          gaps.push({ start: gapStart, end: bStartTotal });
+        }
+        gapStart = Math.max(gapStart, bEndTotal);
+      }
+      if (endTotal - 30 > gapStart) {
+        gaps.push({ start: gapStart, end: endTotal - 30 });
+      }
+
+      const validSlots = gaps.filter((g) => g.end - g.start >= minBreakDuration);
+      const slot = validSlots.length > 0 ? validSlots[validSlots.length - 1] : undefined;
+      if (slot) {
+        breakStartTotal = slot.start;
+        breakEndTotal = Math.min(slot.start + defaultBreakDuration, slot.end);
+      } else {
+        // No gap large enough: fallback to middle of day (should rarely happen)
+        const midTotal = Math.floor((startTotal + endTotal) / 2);
+        breakStartTotal = midTotal;
+        breakEndTotal = Math.min(midTotal + defaultBreakDuration, endTotal - 30);
+      }
+    }
+
+    const breakStartHours = Math.floor(breakStartTotal / 60) % 24;
+    const breakStartMins = breakStartTotal % 60;
     const breakEndHours = Math.floor(breakEndTotal / 60) % 24;
     const breakEndMins = breakEndTotal % 60;
-    
+
     const newBreak: BreakTime = {
       id: `break-${Date.now()}-${Math.random()}`,
       start: `${breakStartHours.toString().padStart(2, '0')}:${breakStartMins.toString().padStart(2, '0')}`,

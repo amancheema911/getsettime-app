@@ -270,6 +270,8 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
       if (additionalDescriptionEnabled && notes.trim()) metadata.notes = notes.trim();
       if (Object.keys(intakeFormPayload).length > 0) metadata.intake_form = intakeFormPayload;
 
+      const timezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined;
+
       const res = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
@@ -284,6 +286,7 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
           end_at: endDate.toISOString(),
           status: bookingStatus,
           metadata: Object.keys(metadata).length > 0 ? metadata : null,
+          ...(timezone ? { timezone } : {}),
         }),
       });
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { findOrCreateContact } from '@/lib/contact-linking';
+import { getLocalTimePartsInTimezone } from '@/lib/date-timezone';
 
 type DayName = "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat";
 
@@ -229,6 +230,7 @@ export async function POST(req: NextRequest) {
       location,
       payment_id,
       metadata,
+      timezone: clientTimezone,
     } = body;
 
     if (!invitee_name || !invitee_name.trim()) {
@@ -285,8 +287,14 @@ export async function POST(req: NextRequest) {
       };
     }
     
-    // Check if the day is enabled in timesheet
-    const dayName: DayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][startDate.getDay()] as DayName;
+    // Use timezone-aware parsing when client sends timezone (fixes Vercel UTC vs local mismatch)
+    const tz = typeof clientTimezone === 'string' && clientTimezone.trim() ? clientTimezone.trim() : null;
+    const startParts = tz ? getLocalTimePartsInTimezone(start_at, tz) : null;
+    const endParts = tz && end_at ? getLocalTimePartsInTimezone(end_at, tz) : null;
+
+    const dayName: DayName = startParts
+      ? (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][startParts.dayOfWeek] as DayName)
+      : (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][startDate.getDay()] as DayName);
     const daySchedule = availability.timesheet?.[dayName];
     
     if (!daySchedule || !daySchedule.enabled) {
@@ -295,9 +303,8 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Check if time is within available hours
-    const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
-    const endMinutes = endDate.getHours() * 60 + endDate.getMinutes();
+    const startMinutes = startParts ? startParts.startMinutes : startDate.getHours() * 60 + startDate.getMinutes();
+    const endMinutes = endParts ? endParts.startMinutes : endDate.getHours() * 60 + endDate.getMinutes();
     const scheduleStart = parseInt(daySchedule.startTime.split(':')[0]) * 60 + parseInt(daySchedule.startTime.split(':')[1]);
     const scheduleEnd = parseInt(daySchedule.endTime.split(':')[0]) * 60 + parseInt(daySchedule.endTime.split(':')[1]);
     
@@ -323,8 +330,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Check individual overrides (format: YYYY-MM-DD-H)
-    const dateStr = startDate.toISOString().split('T')[0];
-    const individualKey = `${dateStr}-${startDate.getHours()}`;
+    const dateStr = startParts ? startParts.dateStr : startDate.toISOString().split('T')[0];
+    const slotHour = startParts ? startParts.hours : startDate.getHours();
+    const individualKey = `${dateStr}-${slotHour}`;
     const individualOverride = availability.individual?.[individualKey];
     
     if (individualOverride === false) {

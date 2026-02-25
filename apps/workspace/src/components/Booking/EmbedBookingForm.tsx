@@ -280,6 +280,8 @@ export default function EmbedBookingForm({ workspace, eventType, eventTypeSlug }
         if (v) intakeFormPayload[field.id] = v;
       }
 
+      const timezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined;
+
       const res = await fetch('/api/embed/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -294,6 +296,7 @@ export default function EmbedBookingForm({ workspace, eventType, eventTypeSlug }
           start_at: startDate.toISOString(),
           end_at: endDate.toISOString(),
           intake_form: Object.keys(intakeFormPayload).length > 0 ? intakeFormPayload : null,
+          ...(timezone ? { timezone } : {}),
         }),
       });
 

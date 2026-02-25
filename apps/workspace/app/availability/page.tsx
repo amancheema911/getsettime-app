@@ -213,6 +213,13 @@ export default function Availability() {
     return slotDate < today; // Disable only if day is before today
   };
 
+  // Check if a specific date+hour slot is in the past (day or hour has passed)
+  const isPastTimeSlot = (date: Date, hour: number): boolean => {
+    const slotStart = new Date(date);
+    slotStart.setHours(hour, 0, 0, 0);
+    return slotStart.getTime() < Date.now();
+  };
+
   // Check if a time slot is booked
   const isTimeSlotBooked = (date: Date, hour: number): boolean => {
     if (!date || bookings.length === 0) return false;
@@ -293,9 +300,9 @@ export default function Availability() {
     // Prevent toggling booked slots
     if (date && isTimeSlotBooked(date, hour)) return;
 
-    // For date-specific slots, allow toggling regardless of weekday enabled state
+    // For date-specific slots, disallow toggling past slots
     if (date) {
-      if (isPastSlot(date)) return;
+      if (isPastTimeSlot(date, hour)) return;
       const key = getTimeSlotKey(dayName, hour, date);
       setTimeSlots((prev) => ({
         ...prev,
@@ -829,7 +836,7 @@ export default function Availability() {
 
                                 {hours.map((h) => {
                                   const active = isTimeSlotActive(dayName, h, day);
-                                  const isPast = isPastSlot(day);
+                                  const isPast = isPastTimeSlot(day, h);
                                   const isBooked = isTimeSlotBooked(day, h);
 
                                   return (
@@ -843,10 +850,17 @@ export default function Availability() {
                                       }}
                                     >
                                       <div
-                                        className={`absolute inset-1 rounded-lg border
-                                          ${isBooked ? "bg-red-400/50 border-red-500" : active ? "bg-indigo-600/50 border-indigo-600" : "bg-gray-200 border-transparent"}
+                                        className={`absolute inset-1 rounded-lg border flex items-center justify-center
+                                          ${isPast ? "bg-slate-300/60 border-slate-400" : isBooked ? "bg-red-400/50 border-red-500" : active ? "bg-indigo-600/50 border-indigo-600" : "bg-gray-200 border-transparent"}
                                         `}
-                                      ></div>
+                                      >
+                                        {isBooked && (
+                                          <span className="text-[10px] font-medium text-red-800">Booked</span>
+                                        )}
+                                        {isPast && !isBooked && (
+                                          <span className="text-[10px] text-slate-500">Past</span>
+                                        )}
+                                      </div>
                                     </div>
                                   );
                                 })}
@@ -878,7 +892,7 @@ export default function Availability() {
                                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                                   {hours.map((h) => {
                                     const active = isTimeSlotActive(dayName, h, day);
-                                    const isPast = isPastSlot(day);
+                                    const isPast = isPastTimeSlot(day, h);
                                     const isBooked = isTimeSlotBooked(day, h);
                                     return (
                                       <div
@@ -888,7 +902,7 @@ export default function Availability() {
                                             isPast || isBooked
                                               ? isBooked 
                                                 ? "bg-red-200 border-red-400 text-red-700 cursor-not-allowed"
-                                                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                                : "bg-slate-200 border-slate-400 text-slate-500 cursor-not-allowed"
                                               : active
                                               ? "bg-indigo-600/20 border-indigo-600 text-indigo-600 font-medium cursor-pointer hover:opacity-80"
                                               : "bg-gray-100 border-gray-200 text-slate-500 cursor-pointer hover:opacity-80"
@@ -898,7 +912,7 @@ export default function Availability() {
                                       >
                                         <div>{formatHour(h)}</div>
                                         <div className="text-[10px] leading-tight mt-1">
-                                          {isBooked ? "Booked" : active ? "Available" : "Unavailable"}
+                                          {isBooked ? "Booked" : isPast ? "Past" : active ? "Available" : "Unavailable"}
                                         </div>
                                       </div>
                                     );
@@ -931,7 +945,7 @@ export default function Availability() {
 
                               {hours.map((h) => {
                                 const active = isTimeSlotActive(dayName, h, currentDate);
-                                const isPast = isPastSlot(currentDate);
+                                const isPast = isPastTimeSlot(currentDate, h);
                                 const isBooked = isTimeSlotBooked(currentDate, h);
                                 return (
                                   <div
@@ -947,10 +961,17 @@ export default function Availability() {
                                       <span>{formatHour(h)}</span>
                                     </div>
                                     <div
-                                      className={`absolute inset-1 mt-6 rounded-lg border
-                                      ${isBooked ? "bg-red-400/50 border-red-500" : active ? "bg-indigo-600/50 border-indigo-600" : "bg-gray-200 border-transparent"}
+                                      className={`absolute inset-1 mt-6 rounded-lg border flex items-center justify-center
+                                      ${isPast ? "bg-slate-300/60 border-slate-400" : isBooked ? "bg-red-400/50 border-red-500" : active ? "bg-indigo-600/50 border-indigo-600" : "bg-gray-200 border-transparent"}
                                       `}
-                                    ></div>
+                                    >
+                                      {isBooked && (
+                                        <span className="text-[10px] font-medium text-red-800">Booked</span>
+                                      )}
+                                      {isPast && !isBooked && (
+                                        <span className="text-[10px] text-slate-500">Past</span>
+                                      )}
+                                    </div>
                                   </div>
                                 );
                               })}
@@ -976,7 +997,7 @@ export default function Availability() {
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                               {hours.map((h) => {
                                 const active = isTimeSlotActive(dayName, h, currentDate);
-                                const isPast = isPastSlot(currentDate);
+                                const isPast = isPastTimeSlot(currentDate, h);
                                 const isBooked = isTimeSlotBooked(currentDate, h);
                                 return (
                                   <div
@@ -986,7 +1007,7 @@ export default function Availability() {
                                         isPast || isBooked
                                           ? isBooked
                                             ? "bg-red-200 border-red-400 text-red-700 cursor-not-allowed"
-                                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                            : "bg-slate-200 border-slate-400 text-slate-500 cursor-not-allowed"
                                           : active
                                           ? "bg-indigo-600/20 border-indigo-600 text-indigo-600 font-semibold cursor-pointer hover:opacity-80"
                                           : "bg-gray-100 border-gray-200 text-slate-600 cursor-pointer hover:opacity-80"
@@ -998,7 +1019,7 @@ export default function Availability() {
                                   >
                                     <div className="text-base font-medium">{formatHour(h)}</div>
                                     <div className="text-[10px] mt-1">
-                                      {isBooked ? "Booked" : active ? "Available" : "Unavailable"}
+                                      {isBooked ? "Booked" : isPast ? "Past" : active ? "Available" : "Unavailable"}
                                     </div>
                                   </div>
                                 );

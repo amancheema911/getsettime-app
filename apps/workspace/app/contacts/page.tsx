@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { Contact, FormContact } from "@/src/types/contact";
+import { AlertModal } from "@/src/components/ui/AlertModal";
+import { ConfirmModal } from "@/src/components/ui/ConfirmModal";
 
 function toFormContact(c: Contact): FormContact {
   return {
@@ -24,6 +26,8 @@ export default function ContactsCreative() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingContact, setEditingContact] = useState<FormContact | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -98,13 +102,19 @@ export default function ContactsCreative() {
     setShowModal(true);
   };
 
-  const handleDeleteContact = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this contact?")) return;
+  const handleDeleteClick = (id: string) => setDeleteConfirm(id);
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
     try {
       const { supabase } = await import("@/lib/supabaseClient");
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
-      const res = await fetch(`/api/contacts?id=${id}`, {
+      if (!session?.access_token) {
+        setDeleteConfirm(null);
+        setAlertMessage("Not authenticated");
+        return;
+      }
+      const res = await fetch(`/api/contacts?id=${deleteConfirm}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
@@ -112,9 +122,11 @@ export default function ContactsCreative() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Failed to delete");
       }
-      setContacts((prev) => prev.filter((c) => c.id !== id));
+      setContacts((prev) => prev.filter((c) => c.id !== deleteConfirm));
+      setDeleteConfirm(null);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to delete contact");
+      setDeleteConfirm(null);
+      setAlertMessage(e instanceof Error ? e.message : "Failed to delete contact");
     }
   };
 
@@ -182,7 +194,7 @@ export default function ContactsCreative() {
         country: "",
       });
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Something went wrong");
+      setAlertMessage(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setSubmitting(false);
     }
@@ -288,7 +300,7 @@ export default function ContactsCreative() {
                       <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Action">
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={() => handleEditContact(contact)} className="cursor-pointer inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10 hover:bg-indigo-100" title="Edit">Edit</button>
-                          <button onClick={() => handleDeleteContact(contact.id)} className="cursor-pointer inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10 hover:bg-red-100" title="Delete">Delete</button>
+                          <button onClick={() => handleDeleteClick(contact.id)} className="cursor-pointer inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10 hover:bg-red-100" title="Delete">Delete</button>
                         </div>
                       </td>
                     </tr>
@@ -395,6 +407,21 @@ export default function ContactsCreative() {
             </div>
           </div>
         </div>
+      )}
+
+      {deleteConfirm && (
+        <ConfirmModal
+          title="Delete Contact"
+          message="Are you sure you want to delete this contact? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
+
+      {alertMessage && (
+        <AlertModal message={alertMessage} onClose={() => setAlertMessage(null)} />
       )}
     </section>
   );

@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { AlertModal } from "@/src/components/ui/AlertModal";
+import { ConfirmModal } from "@/src/components/ui/ConfirmModal";
 
 interface Service {
   id: string;
@@ -22,6 +24,8 @@ export default function ServicesPage() {
     price: "",
   });
   const [loading, setLoading] = useState(false);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Fetch services on mount
   useEffect(() => {
@@ -77,7 +81,7 @@ export default function ServicesPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        alert('Not authenticated');
+        setAlertMessage('Not authenticated');
         return;
       }
 
@@ -101,31 +105,32 @@ export default function ServicesPage() {
         handleServiceFormCancel();
       } else {
         const errorData = await response.json();
-        alert(`Error: ${errorData.error || 'Failed to save service'}`);
+        setAlertMessage(`Error: ${errorData.error || 'Failed to save service'}`);
       }
     } catch (error) {
       console.error('Error saving service:', error);
-      alert('An error occurred while saving the service');
+      setAlertMessage('An error occurred while saving the service');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteService = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this service?")) {
-      return;
-    }
+  const handleDeleteServiceClick = (id: string) => setDeleteConfirmId(id);
 
+  const handleDeleteServiceConfirm = async () => {
+    if (!deleteConfirmId) return;
     setLoading(true);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        alert('Not authenticated');
+        setDeleteConfirmId(null);
+        setAlertMessage('Not authenticated');
+        setLoading(false);
         return;
       }
 
-      const response = await fetch(`/api/services?id=${id}`, {
+      const response = await fetch(`/api/services?id=${deleteConfirmId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -134,13 +139,16 @@ export default function ServicesPage() {
 
       if (response.ok) {
         await fetchServices();
+        setDeleteConfirmId(null);
       } else {
         const errorData = await response.json();
-        alert(`Error: ${errorData.error || 'Failed to delete service'}`);
+        setDeleteConfirmId(null);
+        setAlertMessage(`Error: ${errorData.error || 'Failed to delete service'}`);
       }
     } catch (error) {
       console.error('Error deleting service:', error);
-      alert('An error occurred while deleting the service');
+      setDeleteConfirmId(null);
+      setAlertMessage('An error occurred while deleting the service');
     } finally {
       setLoading(false);
     }
@@ -205,7 +213,7 @@ export default function ServicesPage() {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDeleteService(service.id)}
+                    onClick={() => handleDeleteServiceClick(service.id)}
                     className="inline-flex items-center rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 transition"
                     disabled={loading}
                   >
@@ -304,6 +312,22 @@ export default function ServicesPage() {
             </div>
           </section>
         </div>
+      )}
+
+      {deleteConfirmId && (
+        <ConfirmModal
+          title="Delete Service"
+          message="Are you sure you want to delete this service? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleDeleteServiceConfirm}
+          onCancel={() => setDeleteConfirmId(null)}
+          loading={loading}
+        />
+      )}
+
+      {alertMessage && (
+        <AlertModal message={alertMessage} onClose={() => setAlertMessage(null)} />
       )}
     </section>
   );

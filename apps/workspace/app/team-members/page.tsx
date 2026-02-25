@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { ConfirmModal } from "@/src/components/ui/ConfirmModal";
 
 interface Department {
   id: number;
@@ -40,6 +41,10 @@ export default function TeamMembersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    action: "deactivate" | "activate";
+    memberId: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchTeamMembers();
@@ -235,10 +240,14 @@ export default function TeamMembersPage() {
     }
   };
 
-  const handleDeleteMember = async (memberId: string) => {
-    if (!confirm('Are you sure you want to deactivate this team member?')) {
-      return;
-    }
+  const handleDeactivateClick = (memberId: string) =>
+    setConfirmModal({ action: "deactivate", memberId });
+
+  const handleActivateClick = (memberId: string) =>
+    setConfirmModal({ action: "activate", memberId });
+
+  const handleConfirmAction = async () => {
+    if (!confirmModal) return;
 
     setLoading(true);
     setError(null);
@@ -248,66 +257,44 @@ export default function TeamMembersPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         setError('Not authenticated');
+        setConfirmModal(null);
         setLoading(false);
         return;
       }
 
-      const response = await fetch(`/api/team-members?id=${memberId}`, {
-        method: 'DELETE',
+      const isDeactivate = confirmModal.action === "deactivate";
+      const response = await fetch(`/api/team-members?id=${confirmModal.memberId}`, {
+        method: isDeactivate ? 'DELETE' : 'PATCH',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
         },
       });
 
       if (response.ok) {
-        setSuccess('Team member deactivated successfully');
+        setSuccess(
+          isDeactivate
+            ? 'Team member deactivated successfully'
+            : 'Team member activated successfully'
+        );
         await fetchTeamMembers();
+        setConfirmModal(null);
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to deactivate team member');
+        setError(
+          errorData.error ||
+            (isDeactivate ? 'Failed to deactivate team member' : 'Failed to activate team member')
+        );
+        setConfirmModal(null);
       }
-    } catch (error) {
-      console.error('Error deactivating team member:', error);
-      setError('An error occurred while deactivating the team member');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleActivateMember = async (memberId: string) => {
-    if (!confirm('Are you sure you want to activate this team member?')) {
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setError('Not authenticated');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(`/api/team-members?id=${memberId}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (response.ok) {
-        setSuccess('Team member activated successfully');
-        await fetchTeamMembers();
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to activate team member');
-      }
-    } catch (error) {
-      console.error('Error activating team member:', error);
-      setError('An error occurred while activating the team member');
+    } catch (err) {
+      const isDeactivate = confirmModal.action === "deactivate";
+      console.error(isDeactivate ? 'Error deactivating team member:' : 'Error activating team member:', err);
+      setError(
+        confirmModal.action === "deactivate"
+          ? 'An error occurred while deactivating the team member'
+          : 'An error occurred while activating the team member'
+      );
+      setConfirmModal(null);
     } finally {
       setLoading(false);
     }
@@ -492,7 +479,7 @@ export default function TeamMembersPage() {
                     </button>
                     {!member.deactivated ? (
                       <button
-                        onClick={() => handleDeleteMember(member.id)}
+                        onClick={() => handleDeactivateClick(member.id)}
                         className="inline-flex items-center rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 transition"
                         disabled={loading}
                       >
@@ -500,7 +487,7 @@ export default function TeamMembersPage() {
                       </button>
                     ) : (
                       <button
-                        onClick={() => handleActivateMember(member.id)}
+                        onClick={() => handleActivateClick(member.id)}
                         className="inline-flex items-center rounded-md bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition"
                         disabled={loading}
                       >
@@ -904,6 +891,22 @@ export default function TeamMembersPage() {
             </div>
           </section>
         </div>
+      )}
+
+      {confirmModal && (
+        <ConfirmModal
+          title={confirmModal.action === "deactivate" ? "Deactivate Team Member" : "Activate Team Member"}
+          message={
+            confirmModal.action === "deactivate"
+              ? "Are you sure you want to deactivate this team member?"
+              : "Are you sure you want to activate this team member?"
+          }
+          confirmLabel={confirmModal.action === "deactivate" ? "Deactivate" : "Activate"}
+          variant={confirmModal.action === "deactivate" ? "danger" : "primary"}
+          onConfirm={handleConfirmAction}
+          onCancel={() => setConfirmModal(null)}
+          loading={loading}
+        />
       )}
     </section>
   );

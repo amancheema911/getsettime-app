@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { ConfirmModal } from "@/src/components/ui/ConfirmModal";
 
 interface IntegrationStatus {
   google_calendar: boolean;
@@ -18,6 +19,7 @@ function IntegrationsContent() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [disconnectConfirm, setDisconnectConfirm] = useState<'google_calendar' | 'zoom' | null>(null);
 
   useEffect(() => {
     fetchIntegrations();
@@ -98,13 +100,18 @@ function IntegrationsContent() {
     }
   };
 
-  const handleDisconnect = async (type: 'google_calendar' | 'zoom') => {
-    if (!confirm(`Are you sure you want to disconnect ${type}?`)) {
-      return;
-    }
+  const handleDisconnectClick = (type: 'google_calendar' | 'zoom') => {
+    setDisconnectConfirm(type);
+  };
 
+  const handleDisconnectConfirm = async () => {
+    if (!disconnectConfirm) return;
+
+    const type = disconnectConfirm;
     setActionLoading(type);
     setMessage(null);
+    setDisconnectConfirm(null);
+
     try {
       const { supabase } = await import('@/lib/supabaseClient');
       const { data: { session } } = await supabase.auth.getSession();
@@ -126,8 +133,8 @@ function IntegrationsContent() {
         const error = await response.json();
         setMessage({ type: 'error', text: error.error || 'Failed to disconnect' });
       }
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to disconnect' });
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to disconnect' });
     } finally {
       setActionLoading(null);
     }
@@ -209,7 +216,7 @@ function IntegrationsContent() {
                     : "Not connected"}
                 </span>
                 <button 
-                  onClick={() => it.connected ? handleDisconnect(it.id as 'google_calendar' | 'zoom') : handleConnect(it.connectType)}
+                  onClick={() => it.connected ? handleDisconnectClick(it.id as 'google_calendar' | 'zoom') : handleConnect(it.connectType)}
                   disabled={actionLoading !== null}
                   className={`px-3 py-1 text-sm font-medium rounded-xl transition ${
                     it.connected 
@@ -223,6 +230,17 @@ function IntegrationsContent() {
             </div>
           ))}
         </div>
+      )}
+
+      {disconnectConfirm && (
+        <ConfirmModal
+          title="Disconnect Integration"
+          message={`Are you sure you want to disconnect ${disconnectConfirm.replace('_', ' ')}?`}
+          confirmLabel="Disconnect"
+          variant="danger"
+          onConfirm={handleDisconnectConfirm}
+          onCancel={() => setDisconnectConfirm(null)}
+        />
       )}
     </section>
   );

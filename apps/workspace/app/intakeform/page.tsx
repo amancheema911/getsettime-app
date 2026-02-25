@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { AlertModal } from "@/src/components/ui/AlertModal";
+import { ConfirmModal } from "@/src/components/ui/ConfirmModal";
 
 interface Rule {
   id: number;
@@ -69,6 +71,8 @@ export default function RoutingForm({ dark = false }) {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
   const [serviceSearch, setServiceSearch] = useState("");
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [deleteRuleId, setDeleteRuleId] = useState<number | null>(null);
 
   // Fetch services and settings on mount
   useEffect(() => {
@@ -186,7 +190,7 @@ export default function RoutingForm({ dark = false }) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        alert('Not authenticated');
+        setAlertMessage('Not authenticated');
         return;
       }
 
@@ -204,15 +208,15 @@ export default function RoutingForm({ dark = false }) {
       });
 
       if (response.ok) {
-        alert('Intake form settings saved successfully!');
+        setAlertMessage('Intake form settings saved successfully!');
         handleIntakeFormCancel();
       } else {
         const errorData = await response.json();
-        alert(`Error: ${errorData.error || 'Failed to save settings'}`);
+        setAlertMessage(`Error: ${errorData.error || 'Failed to save settings'}`);
       }
     } catch (error) {
       console.error('Error saving intake form settings:', error);
-      alert('An error occurred while saving settings');
+      setAlertMessage('An error occurred while saving settings');
     } finally {
       setLoading(false);
     }
@@ -233,9 +237,12 @@ export default function RoutingForm({ dark = false }) {
     });
   };
 
-  const handleDeleteRule = (id: number) => {
-    if (confirm("Are you sure you want to delete this rule?")) {
-      setRules(rules.filter((rule) => rule.id !== id));
+  const handleDeleteRuleClick = (id: number) => setDeleteRuleId(id);
+
+  const handleDeleteRuleConfirm = () => {
+    if (deleteRuleId !== null) {
+      setRules(rules.filter((rule) => rule.id !== deleteRuleId));
+      setDeleteRuleId(null);
     }
   };
 
@@ -805,6 +812,21 @@ export default function RoutingForm({ dark = false }) {
             </div>
           </section>
         </div>
+      )}
+
+      {deleteRuleId !== null && (
+        <ConfirmModal
+          title="Delete Rule"
+          message="Are you sure you want to delete this rule?"
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleDeleteRuleConfirm}
+          onCancel={() => setDeleteRuleId(null)}
+        />
+      )}
+
+      {alertMessage && (
+        <AlertModal message={alertMessage} onClose={() => setAlertMessage(null)} />
       )}
     </section>
   );

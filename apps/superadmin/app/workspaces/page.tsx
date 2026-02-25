@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
+import { Pagination, usePagination } from '@app/ui';
 import { supabase } from '@/lib/supabaseClient';
 import type { Workspace } from '@app/db';
 
@@ -31,6 +32,8 @@ const WorkspacesPage: React.FC = () => {
   const [modalError, setModalError] = useState<string | null>(null);
   const [originalLogoUrl, setOriginalLogoUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const ITEMS_PER_PAGE = 20;
 
   // Fetch workspaces
   const fetchWorkspaces = async () => {
@@ -396,6 +399,14 @@ const WorkspacesPage: React.FC = () => {
     }
   };
 
+  const {
+    paginatedItems: paginatedWorkspaces,
+    currentPage,
+    totalPages,
+    totalItems: totalWorkspaces,
+    handlePageChange,
+  } = usePagination(workspaces, ITEMS_PER_PAGE);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -428,102 +439,113 @@ const WorkspacesPage: React.FC = () => {
             <p className="text-sm">Click "Add Workspace" to create your first workspace</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr className="border border-slate-200">
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
-                    Slug
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
-                    Colors
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-6 py-4 text-right text-sm font-bold text-slate-700 tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {workspaces.map((workspace) => (
-                  <tr key={workspace.id} className="bg-white border border-slate-200 hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Name">
-                      <div className="item-align-end flex items-center gap-3">
-                        {workspace.logo_url ? (
-                          <img
-                            src={workspace.logo_url}
-                            alt={workspace.name}
-                            className="w-10 h-10 rounded-lg object-cover border border-slate-200"
-                            onError={(e) => {
-                              // Hide broken images
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
-                            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                          </div>
-                        )}
-                        <span className="font-medium text-slate-900">{workspace.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Slug">
-                      <code className="text-sm bg-slate-100 px-2 py-1 rounded text-slate-700">
-                        {workspace.slug}
-                      </code>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Colors">
-                      <div className="item-align-end flex items-center gap-2">
-                        {workspace.primary_color && (
-                          <div
-                            className="w-6 h-6 rounded border border-slate-300"
-                            style={{ backgroundColor: workspace.primary_color }}
-                            title={`Primary: ${workspace.primary_color}`}
-                          />
-                        )}
-                        {workspace.accent_color && (
-                          <div
-                            className="w-6 h-6 rounded border border-slate-300"
-                            style={{ backgroundColor: workspace.accent_color }}
-                            title={`Accent: ${workspace.accent_color}`}
-                          />
-                        )}
-                        {!workspace.primary_color && !workspace.accent_color && (
-                          <span className="text-sm text-slate-400">-</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Created">
-                      {new Date(workspace.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Actions">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(workspace)}
-                          className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10 hover:bg-indigo-100 cursor-pointer"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(workspace)}
-                          className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10 hover:bg-red-100 cursor-pointer"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr className="border border-slate-200">
+                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
+                      Slug
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
+                      Colors
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
+                      Created
+                    </th>
+                    <th className="px-6 py-4 text-right text-sm font-bold text-slate-700 tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {paginatedWorkspaces.map((workspace) => (
+                    <tr key={workspace.id} className="bg-white border border-slate-200 hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Name">
+                        <div className="item-align-end flex items-center gap-3">
+                          {workspace.logo_url ? (
+                            <img
+                              src={workspace.logo_url}
+                              alt={workspace.name}
+                              className="w-10 h-10 rounded-lg object-cover border border-slate-200"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                              <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                            </div>
+                          )}
+                          <span className="font-medium text-slate-900">{workspace.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Slug">
+                        <code className="text-sm bg-slate-100 px-2 py-1 rounded text-slate-700">
+                          {workspace.slug}
+                        </code>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Colors">
+                        <div className="item-align-end flex items-center gap-2">
+                          {workspace.primary_color && (
+                            <div
+                              className="w-6 h-6 rounded border border-slate-300"
+                              style={{ backgroundColor: workspace.primary_color }}
+                              title={`Primary: ${workspace.primary_color}`}
+                            />
+                          )}
+                          {workspace.accent_color && (
+                            <div
+                              className="w-6 h-6 rounded border border-slate-300"
+                              style={{ backgroundColor: workspace.accent_color }}
+                              title={`Accent: ${workspace.accent_color}`}
+                            />
+                          )}
+                          {!workspace.primary_color && !workspace.accent_color && (
+                            <span className="text-sm text-slate-400">-</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Created">
+                        {new Date(workspace.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Actions">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEdit(workspace)}
+                            className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10 hover:bg-indigo-100 cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(workspace)}
+                            className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10 hover:bg-red-100 cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalWorkspaces}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={handlePageChange}
+              loading={loading}
+              itemLabel="workspaces"
+            />
+          </>
         )}
       </section>
 

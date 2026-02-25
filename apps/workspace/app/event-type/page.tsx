@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/src/providers/AuthProvider";
+import { AlertModal } from "@/src/components/ui/AlertModal";
+import { ConfirmModal } from "@/src/components/ui/ConfirmModal";
 
 interface EventType {
   id: number;
@@ -27,6 +29,8 @@ export default function EventTypes() {
   const [workspaceSlug, setWorkspaceSlug] = useState<string>("");
   const [loadingSlug, setLoadingSlug] = useState(true);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "",
     duration_minutes: "",
@@ -209,17 +213,19 @@ export default function EventTypes() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this event type?")) return;
+  const handleDeleteClick = (id: number) => setDeleteConfirmId(id);
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmId) return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        console.error("No access token found");
+        setDeleteConfirmId(null);
+        setAlertMessage("Not authenticated");
         return;
       }
 
-      const response = await fetch(`/api/event-types?id=${id}`, {
+      const response = await fetch(`/api/event-types?id=${deleteConfirmId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -228,13 +234,17 @@ export default function EventTypes() {
 
       if (!response.ok) {
         const error = await response.json();
-        console.error("Error deleting event type:", error);
+        setDeleteConfirmId(null);
+        setAlertMessage(error?.error || "Failed to delete event type");
         return;
       }
 
-      setItems((prev) => prev.filter((item) => item.id !== id));
+      setItems((prev) => prev.filter((item) => item.id !== deleteConfirmId));
+      setDeleteConfirmId(null);
     } catch (err) {
       console.error("Error:", err);
+      setDeleteConfirmId(null);
+      setAlertMessage("An error occurred while deleting the event type");
     }
   };
 
@@ -266,12 +276,12 @@ export default function EventTypes() {
 
   const handleCopyLink = async (item: EventType) => {
     if (!workspaceSlug) {
-      alert("Unable to copy link. Workspace slug is not loaded yet. Please try again.");
+      setAlertMessage("Unable to copy link. Workspace slug is not loaded yet. Please try again.");
       return;
     }
     
     if (!item.slug) {
-      alert(`Unable to copy link. Event type "${item.title}" does not have a slug. Please edit and save the event type to generate a slug.`);
+      setAlertMessage(`Unable to copy link. Event type "${item.title}" does not have a slug. Please edit and save the event type to generate a slug.`);
       return;
     }
 
@@ -283,7 +293,7 @@ export default function EventTypes() {
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
       console.error("Failed to copy link:", err);
-      alert("Failed to copy link. Please try again.");
+      setAlertMessage("Failed to copy link. Please try again.");
     }
   };
 
@@ -528,12 +538,27 @@ export default function EventTypes() {
                     {loadingSlug ? 'Loading...' : copiedId === item.id ? '✓ Copied!' : !item.slug ? 'No slug' : 'Copy link'}
                   </button>
 
-                  <button onClick={() => handleDelete(item.id)} className="cursor-pointer inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10 hover:bg-red-100">Delete</button>
+                  <button onClick={() => handleDeleteClick(item.id)} className="cursor-pointer inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10 hover:bg-red-100">Delete</button>
                 </div>
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {deleteConfirmId && (
+        <ConfirmModal
+          title="Delete Event Type"
+          message="Are you sure you want to delete this event type? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteConfirmId(null)}
+        />
+      )}
+
+      {alertMessage && (
+        <AlertModal message={alertMessage} onClose={() => setAlertMessage(null)} />
       )}
     </section>
   );

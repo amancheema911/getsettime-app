@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { AlertModal } from "@/src/components/ui/AlertModal";
+import { ConfirmModal } from "@/src/components/ui/ConfirmModal";
 
 interface Service {
   id: string;
@@ -35,6 +37,8 @@ export default function DepartmentsPage() {
   const [selectedServices, setSelectedServices] = useState<DepartmentService[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   // Fetch departments and services on mount
   useEffect(() => {
@@ -130,7 +134,7 @@ export default function DepartmentsPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        alert('Not authenticated');
+        setAlertMessage('Not authenticated');
         return;
       }
 
@@ -173,31 +177,32 @@ export default function DepartmentsPage() {
         handleDepartmentFormCancel();
       } else {
         const errorData = await response.json();
-        alert(`Error: ${errorData.error || 'Failed to save department'}`);
+        setAlertMessage(`Error: ${errorData.error || 'Failed to save department'}`);
       }
     } catch (error) {
       console.error('Error saving department:', error);
-      alert('An error occurred while saving the department');
+      setAlertMessage('An error occurred while saving the department');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteDepartment = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this department?")) {
-      return;
-    }
+  const handleDeleteDepartmentClick = (id: number) => setDeleteConfirmId(id);
 
+  const handleDeleteDepartmentConfirm = async () => {
+    if (!deleteConfirmId) return;
     setLoading(true);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        alert('Not authenticated');
+      if (!session?.access_token) {
+        setDeleteConfirmId(null);
+        setAlertMessage('Not authenticated');
+        setLoading(false);
         return;
       }
 
-      const response = await fetch(`/api/departments?id=${id}`, {
+      const response = await fetch(`/api/departments?id=${deleteConfirmId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -206,13 +211,16 @@ export default function DepartmentsPage() {
 
       if (response.ok) {
         await fetchDepartments();
+        setDeleteConfirmId(null);
       } else {
         const errorData = await response.json();
-        alert(`Error: ${errorData.error || 'Failed to delete department'}`);
+        setDeleteConfirmId(null);
+        setAlertMessage(`Error: ${errorData.error || 'Failed to delete department'}`);
       }
     } catch (error) {
       console.error('Error deleting department:', error);
-      alert('An error occurred while deleting the department');
+      setDeleteConfirmId(null);
+      setAlertMessage('An error occurred while deleting the department');
     } finally {
       setLoading(false);
     }
@@ -291,7 +299,7 @@ export default function DepartmentsPage() {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDeleteDepartment(department.id)}
+                      onClick={() => handleDeleteDepartmentClick(department.id)}
                       className="inline-flex items-center rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 transition"
                       disabled={loading}
                     >
@@ -437,6 +445,22 @@ export default function DepartmentsPage() {
             </div>
           </section>
         </div>
+      )}
+
+      {deleteConfirmId && (
+        <ConfirmModal
+          title="Delete Department"
+          message="Are you sure you want to delete this department? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleDeleteDepartmentConfirm}
+          onCancel={() => setDeleteConfirmId(null)}
+          loading={loading}
+        />
+      )}
+
+      {alertMessage && (
+        <AlertModal message={alertMessage} onClose={() => setAlertMessage(null)} />
       )}
     </section>
   );

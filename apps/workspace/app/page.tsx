@@ -1,49 +1,15 @@
 "use client";
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import Link from "next/link";
 import { useAuth } from "@/src/providers/AuthProvider";
+import { useDashboardCounts } from "@/src/hooks/useDashboardCounts";
 import BookingChart from "@/src/components/Charts/BookingChart";
 import BookingStatusChart from "@/src/components/Charts/BookingStatusChart";
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const { counts, loading } = useDashboardCounts(user);
   const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
-  const [totalBookings, setTotalBookings] = useState<number | null>(null);
-  const [loadingBookings, setLoadingBookings] = useState(true);
-
-  useEffect(() => {
-    const fetchBookingsCount = async () => {
-      try {
-        const { supabase } = await import('@/lib/supabaseClient');
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!session?.access_token) {
-          setLoadingBookings(false);
-          return;
-        }
-
-        const response = await fetch('/api/bookings', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          const count = result.data?.length || 0;
-          setTotalBookings(count);
-        }
-      } catch (error) {
-        console.error('Error fetching bookings count:', error);
-      } finally {
-        setLoadingBookings(false);
-      }
-    };
-
-    if (user) {
-      fetchBookingsCount();
-    }
-  }, [user]);
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
@@ -73,7 +39,7 @@ const Dashboard: React.FC = () => {
             <div>
               <h2 className="m-0 text-base font-semibold text-slate-700">Total Bookings</h2>
               <p className="mt-1 text-4xl font-extrabold text-sky-500">
-                {loadingBookings ? '...' : totalBookings ?? 0}
+                {loading ? '...' : counts.bookings}
               </p>
             </div>
             <div className="w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center shadow-inner">
@@ -108,7 +74,9 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="m-0 text-base font-semibold text-slate-700">Employees</h2>
-              <p className="mt-1 text-4xl font-extrabold text-emerald-500">50</p>
+              <p className="mt-1 text-4xl font-extrabold text-emerald-500">
+                {loading ? '...' : counts.teamMembers}
+              </p>
             </div>
             <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center shadow-inner">
               <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -125,7 +93,9 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="m-0 text-base font-semibold text-slate-700">Total Services</h2>
-              <p className="mt-1 text-4xl font-extrabold text-purple-500">18</p>
+              <p className="mt-1 text-4xl font-extrabold text-purple-500">
+                {loading ? '...' : counts.services}
+              </p>
             </div>
             <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center shadow-inner">
               <svg className="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

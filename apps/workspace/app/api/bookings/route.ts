@@ -65,14 +65,17 @@ export async function GET(req: NextRequest) {
     const eventTypeId = searchParams.get('event_type_id') || '';
     const serviceProviderId = searchParams.get('service_provider_id') || '';
     const departmentId = searchParams.get('department_id') || '';
+    const sortBy = searchParams.get('sort') || 'start_at';
     const offset = (page - 1) * limit;
+    
+    const orderColumn = sortBy === 'latest' ? 'created_at' : 'start_at';
     
     // Build query with search filter, event_types and contacts join
     let query = supabase
       .from('bookings')
       .select('*, event_types(title), contacts(name, phone, email)', { count: 'exact' })
       .eq('workspace_id', workspaceId)
-      .order('start_at', { ascending: false });
+      .order(orderColumn, { ascending: false });
 
     // Apply search filter if provided
     if (search.trim()) {

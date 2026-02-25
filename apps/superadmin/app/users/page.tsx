@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { Pagination, usePagination } from '@app/ui';
 import { supabase } from '@/lib/supabaseClient';
 import type { Workspace } from '@app/db';
 
@@ -39,6 +40,7 @@ const UsersPage: React.FC = () => {
     role: '', // Filter by role
     workspace_id: '', // Filter by workspace
   });
+  const ITEMS_PER_PAGE = 20;
 
   // Fetch users
   const fetchUsers = async () => {
@@ -316,6 +318,20 @@ const UsersPage: React.FC = () => {
   // Check if any filter is active
   const hasActiveFilters = filters.search !== '' || filters.role !== '' || filters.workspace_id !== '';
 
+  const {
+    paginatedItems: paginatedUsers,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    totalItems: totalFiltered,
+    handlePageChange,
+  } = usePagination(filteredUsers, ITEMS_PER_PAGE);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.search, filters.role, filters.workspace_id]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -438,79 +454,91 @@ const UsersPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr className="border border-slate-200">
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
-                    Workspace
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-6 py-4 text-right text-sm font-bold text-slate-700 tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="bg-white border border-slate-200 hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Name">
-                      <span className="font-semibold text-slate-900">{user.name || '-'}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Email">
-                      <span className="text-slate-700">{user.email}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Role">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.role === 'superadmin' 
-                          ? 'bg-purple-100 text-purple-800'
-                          : user.role === 'workspace_admin'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {formatRole(user.role)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Workspace">
-                      <span className="text-sm text-slate-700">
-                        {getWorkspaceName(user.workspace_id)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Created">
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Actions">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(user)}
-                          className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10 hover:bg-indigo-100 cursor-pointer"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(user)}
-                          className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10 hover:bg-red-100 cursor-pointer"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr className="border border-slate-200">
+                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
+                      Email
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
+                      Role
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
+                      Workspace
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
+                      Created
+                    </th>
+                    <th className="px-6 py-4 text-right text-sm font-bold text-slate-700 tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {paginatedUsers.map((user) => (
+                    <tr key={user.id} className="bg-white border border-slate-200 hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Name">
+                        <span className="font-semibold text-slate-900">{user.name || '-'}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Email">
+                        <span className="text-slate-700">{user.email}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Role">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          user.role === 'superadmin' 
+                            ? 'bg-purple-100 text-purple-800'
+                            : user.role === 'workspace_admin'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {formatRole(user.role)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Workspace">
+                        <span className="text-sm text-slate-700">
+                          {getWorkspaceName(user.workspace_id)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Created">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Actions">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEdit(user)}
+                            className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10 hover:bg-indigo-100 cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(user)}
+                            className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10 hover:bg-red-100 cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalFiltered}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={handlePageChange}
+              loading={loading}
+              itemLabel="users"
+            />
+          </>
         )}
       </section>
 

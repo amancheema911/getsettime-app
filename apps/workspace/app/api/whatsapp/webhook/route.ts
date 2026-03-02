@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { sendWhatsAppMessage } from "@workspace/lib/whatsapp";
 
-const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+const VERIFY_TOKEN = process.env.WHATSAPP_FALLBACK_TOKEN;
 
 /**
  * GET: Verification endpoint for WhatsApp Cloud API webhook
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const challenge = searchParams.get("hub.challenge");
 
   if (!VERIFY_TOKEN) {
-    console.error("WHATSAPP_WEBHOOK_VERIFY_TOKEN is not configured");
+    console.error("WHATSAPP_FALLBACK_TOKEN is not configured");
   }
 
   if (mode === "subscribe" && token === VERIFY_TOKEN && challenge) {

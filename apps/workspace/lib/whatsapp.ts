@@ -283,4 +283,3 @@ export async function sendWhatsAppTemplate(
   console.log("WhatsApp template message sent successfully:", responseData);
   return responseData;
 }
-

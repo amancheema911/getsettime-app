@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 
-const DEFAULT_APP_URL = 'http://localhost:3001';
+const DEFAULT_APP_URL = 'http://localhost:3000';
 
 /**
  * Resolves the application base URL (no trailing slash).

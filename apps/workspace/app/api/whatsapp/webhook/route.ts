@@ -24,7 +24,12 @@
  */
 
 import { NextResponse } from "next/server";
-import { sendWhatsAppMessage } from "@workspace/lib/whatsapp";
+import {
+  sendWhatsAppMessage,
+  sendWhatsAppReply,
+  sendWhatsAppList,
+  sendWhatsAppButtons,
+} from "@workspace/lib/whatsapp";
 
 const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
 
@@ -38,7 +43,14 @@ const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
  * 3. You return the challenge string to complete verification
  */
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
+  // Get the full URL for debugging
+  const url = new URL(req.url);
+  
+  // Log the full URL to see what we're receiving
+  console.log("Full webhook URL:", url.toString());
+  console.log("URL search params:", url.search);
+  
+  const { searchParams } = url;
 
   const mode = searchParams.get("hub.mode");
   const token = searchParams.get("hub.verify_token");
@@ -46,11 +58,27 @@ export async function GET(req: Request) {
 
   // Log all incoming parameters for debugging
   console.log("Webhook verification request:", {
+    url: url.toString(),
+    search: url.search,
     mode,
     tokenReceived: token ? "***" + token.slice(-4) : "missing",
     challenge: challenge ? "present" : "missing",
-    verifyTokenConfigured: VERIFY_TOKEN ? "yes" : "no"
+    verifyTokenConfigured: VERIFY_TOKEN ? "yes" : "no",
+    allParams: Object.fromEntries(searchParams.entries())
   });
+  
+  // If this is a browser request (no parameters), return a helpful message
+  if (!mode && !token && !challenge) {
+    console.log("⚠️ Browser or direct access detected (no webhook parameters)");
+    return NextResponse.json(
+      {
+        message: "WhatsApp Webhook Endpoint",
+        instructions: "This endpoint is for WhatsApp webhook verification. Meta will call this with query parameters: hub.mode, hub.verify_token, and hub.challenge",
+        status: "waiting_for_verification"
+      },
+      { status: 200 }
+    );
+  }
 
   // Check if verify token is configured
   if (!VERIFY_TOKEN) {
@@ -118,8 +146,11 @@ export async function GET(req: Request) {
 }
 
 /**
- * POST: Receive incoming WhatsApp messages and send a reply
- * This uses your existing sendWhatsAppMessage helper and token handling.
+ * POST: Receive incoming WhatsApp messages and handle them
+ * Supports:
+ * - Message status updates (sent, delivered, read, etc.)
+ * - Text messages with commands (hello, list, buttons)
+ * - Interactive messages (list replies, button replies)
  */
 export async function POST(req: Request) {
   try {
@@ -137,32 +168,160 @@ export async function POST(req: Request) {
 
     const entries = body.entry || [];
 
+    if (!entries || entries.length === 0) {
+      return NextResponse.json({ error: "Invalid Request" }, { status: 400 });
+    }
+
     for (const entry of entries) {
       const changes = entry.changes || [];
 
+      if (!changes || changes.length === 0) {
+        return NextResponse.json({ error: "Invalid Request" }, { status: 400 });
+      }
+
       for (const change of changes) {
         const value = change.value || {};
-        const messages = value.messages || [];
+        const statuses = value.statuses ? value.statuses[0] : null;
+        const messages = value.messages ? value.messages[0] : null;
 
-        for (const message of messages) {
-          const from = message.from;
-          const msgBody = message.text?.body || "";
+        // Handle message status updates
+        if (statuses) {
+          console.log(`
+            MESSAGE STATUS UPDATE:
+            ID: ${statuses.id},
+            STATUS: ${statuses.status}
+          `);
+          // You can add custom logic here to track message status
+          continue;
+        }
 
-          if (!from || !msgBody) {
+        // Handle incoming messages
+        if (messages) {
+          const from = messages.from;
+          const messageId = messages.id;
+
+          if (!from) {
             continue;
           }
 
-          console.log("Processing incoming message from:", from, msgBody);
+          // Handle text messages
+          if (messages.type === "text") {
+            const msgBody = messages.text?.body || "";
 
-          try {
-            // Simple auto‑reply – customize as needed
-            await sendWhatsAppMessage(
-              from,
-              `Thanks for your message! We received: "${msgBody}"`
-            );
-          } catch (err) {
-            console.error("Failed to send WhatsApp auto-reply:", err);
+            if (!msgBody) {
+              continue;
+            }
+
+            console.log("Processing text message from:", from, msgBody);
+
+            try {
+              const lowerBody = msgBody.toLowerCase().trim();
+
+              // Handle "hello" command
+              if (lowerBody === "hello") {
+                await sendWhatsAppReply(
+                  from,
+                  "Hello. How are you?",
+                  messageId
+                );
+              }
+              // Handle "list" command
+              else if (lowerBody === "list") {
+                await sendWhatsAppList(from, {
+                  header: "Message Header",
+                  body: "This is a interactive list message",
+                  footer: "This is the message footer",
+                  buttonText: "Tap for the options",
+                  sections: [
+                    {
+                      title: "First Section",
+                      rows: [
+                        {
+                          id: "first_option",
+                          title: "First option",
+                          description:
+                            "This is the description of the first option",
+                        },
+                        {
+                          id: "second_option",
+                          title: "Second option",
+                          description:
+                            "This is the description of the second option",
+                        },
+                      ],
+                    },
+                    {
+                      title: "Second Section",
+                      rows: [
+                        {
+                          id: "third_option",
+                          title: "Third option",
+                        },
+                      ],
+                    },
+                  ],
+                });
+              }
+              // Handle "buttons" command
+              else if (lowerBody === "buttons") {
+                await sendWhatsAppButtons(from, {
+                  header: "Message Header",
+                  body: "This is a interactive reply buttons message",
+                  footer: "This is the message footer",
+                  buttons: [
+                    {
+                      id: "first_button",
+                      title: "First Button",
+                    },
+                    {
+                      id: "second_button",
+                      title: "Second Button",
+                    },
+                  ],
+                });
+              }
+              // Default response for other messages
+              else {
+                await sendWhatsAppMessage(
+                  from,
+                  `Thanks for your message! We received: "${msgBody}"`
+                );
+              }
+            } catch (err) {
+              console.error("Failed to send WhatsApp reply:", err);
+            }
           }
+          // Handle interactive messages (list replies, button replies)
+          else if (messages.type === "interactive") {
+            if (messages.interactive?.type === "list_reply") {
+              const listReply = messages.interactive.list_reply;
+              console.log("List reply received:", listReply);
+
+              try {
+                await sendWhatsAppMessage(
+                  from,
+                  `You selected the option with ID ${listReply.id} - Title ${listReply.title}`
+                );
+              } catch (err) {
+                console.error("Failed to send list reply response:", err);
+              }
+            } else if (messages.interactive?.type === "button_reply") {
+              const buttonReply = messages.interactive.button_reply;
+              console.log("Button reply received:", buttonReply);
+
+              try {
+                await sendWhatsAppMessage(
+                  from,
+                  `You selected the button with ID ${buttonReply.id} - Title ${buttonReply.title}`
+                );
+              } catch (err) {
+                console.error("Failed to send button reply response:", err);
+              }
+            }
+          }
+
+          // Log full message for debugging
+          console.log("Full message data:", JSON.stringify(messages, null, 2));
         }
       }
     }

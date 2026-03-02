@@ -283,3 +283,312 @@ export async function sendWhatsAppTemplate(
   console.log("WhatsApp template message sent successfully:", responseData);
   return responseData;
 }
+
+/**
+ * Send WhatsApp text message with reply context (for replying to a specific message)
+ * 
+ * @param to - Recipient phone number
+ * @param message - Message content to send
+ * @param messageId - The message ID to reply to (for context)
+ * 
+ * This creates a reply thread in WhatsApp
+ */
+export async function sendWhatsAppReply(
+  to: string,
+  message: string,
+  messageId: string
+) {
+  // Validate and format phone number
+  const formattedPhone = formatPhoneNumber(to);
+  
+  // Validate required environment variables
+  if (!PHONE_NUMBER_ID) {
+    throw new Error("WHATSAPP_PHONE_NUMBER_ID is not configured");
+  }
+  
+  if (!FALLBACK_ACCESS_TOKEN) {
+    throw new Error("WHATSAPP_FALLBACK_TOKEN is not configured");
+  }
+
+  if (!messageId) {
+    throw new Error("Message ID is required for reply");
+  }
+
+  const token = await getValidToken();
+  
+  if (!token) {
+    throw new Error("Failed to obtain WhatsApp access token");
+  }
+
+  const apiUrl = `${WHATSAPP_API_URL}/${PHONE_NUMBER_ID}/messages`;
+  
+  const requestBody = {
+    messaging_product: "whatsapp",
+    to: formattedPhone,
+    type: "text",
+    text: {
+      body: message
+    },
+    context: {
+      message_id: messageId
+    }
+  };
+
+  console.log("Sending WhatsApp reply message:", {
+    to: formattedPhone,
+    messageId,
+    from: PHONE_NUMBER_ID
+  });
+
+  const res = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  const responseData = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const errorMessage = responseData.error?.message || responseData.error?.error_user_msg || `WhatsApp API error: ${res.status}`;
+    const errorCode = responseData.error?.code || res.status;
+    const errorType = responseData.error?.type || "unknown";
+    
+    console.error("WhatsApp Reply API Error:", {
+      status: res.status,
+      error: responseData.error,
+      phone: formattedPhone
+    });
+    
+    throw new Error(`${errorMessage} (Code: ${errorCode}, Type: ${errorType})`);
+  }
+
+  console.log("WhatsApp reply sent successfully:", responseData);
+  return responseData;
+}
+
+/**
+ * Send WhatsApp interactive list message
+ * 
+ * @param to - Recipient phone number
+ * @param options - List message configuration
+ */
+export async function sendWhatsAppList(
+  to: string,
+  options: {
+    header?: string;
+    body: string;
+    footer?: string;
+    buttonText: string;
+    sections: Array<{
+      title: string;
+      rows: Array<{
+        id: string;
+        title: string;
+        description?: string;
+      }>;
+    }>;
+  }
+) {
+  // Validate and format phone number
+  const formattedPhone = formatPhoneNumber(to);
+  
+  // Validate required environment variables
+  if (!PHONE_NUMBER_ID) {
+    throw new Error("WHATSAPP_PHONE_NUMBER_ID is not configured");
+  }
+  
+  if (!FALLBACK_ACCESS_TOKEN) {
+    throw new Error("WHATSAPP_FALLBACK_TOKEN is not configured");
+  }
+
+  const token = await getValidToken();
+  
+  if (!token) {
+    throw new Error("Failed to obtain WhatsApp access token");
+  }
+
+  const apiUrl = `${WHATSAPP_API_URL}/${PHONE_NUMBER_ID}/messages`;
+  
+  const requestBody: any = {
+    messaging_product: "whatsapp",
+    to: formattedPhone,
+    type: "interactive",
+    interactive: {
+      type: "list",
+      body: {
+        text: options.body
+      },
+      action: {
+        button: options.buttonText,
+        sections: options.sections
+      }
+    }
+  };
+
+  // Add optional header
+  if (options.header) {
+    requestBody.interactive.header = {
+      type: "text",
+      text: options.header
+    };
+  }
+
+  // Add optional footer
+  if (options.footer) {
+    requestBody.interactive.footer = {
+      text: options.footer
+    };
+  }
+
+  console.log("Sending WhatsApp list message:", {
+    to: formattedPhone,
+    sections: options.sections.length
+  });
+
+  const res = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  const responseData = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const errorMessage = responseData.error?.message || responseData.error?.error_user_msg || `WhatsApp API error: ${res.status}`;
+    const errorCode = responseData.error?.code || res.status;
+    const errorType = responseData.error?.type || "unknown";
+    
+    console.error("WhatsApp List API Error:", {
+      status: res.status,
+      error: responseData.error,
+      phone: formattedPhone
+    });
+    
+    throw new Error(`${errorMessage} (Code: ${errorCode}, Type: ${errorType})`);
+  }
+
+  console.log("WhatsApp list message sent successfully:", responseData);
+  return responseData;
+}
+
+/**
+ * Send WhatsApp interactive button message
+ * 
+ * @param to - Recipient phone number
+ * @param options - Button message configuration
+ */
+export async function sendWhatsAppButtons(
+  to: string,
+  options: {
+    header?: string;
+    body: string;
+    footer?: string;
+    buttons: Array<{
+      id: string;
+      title: string;
+    }>;
+  }
+) {
+  // Validate and format phone number
+  const formattedPhone = formatPhoneNumber(to);
+  
+  // Validate required environment variables
+  if (!PHONE_NUMBER_ID) {
+    throw new Error("WHATSAPP_PHONE_NUMBER_ID is not configured");
+  }
+  
+  if (!FALLBACK_ACCESS_TOKEN) {
+    throw new Error("WHATSAPP_FALLBACK_TOKEN is not configured");
+  }
+
+  if (!options.buttons || options.buttons.length === 0) {
+    throw new Error("At least one button is required");
+  }
+
+  if (options.buttons.length > 3) {
+    throw new Error("Maximum 3 buttons allowed");
+  }
+
+  const token = await getValidToken();
+  
+  if (!token) {
+    throw new Error("Failed to obtain WhatsApp access token");
+  }
+
+  const apiUrl = `${WHATSAPP_API_URL}/${PHONE_NUMBER_ID}/messages`;
+  
+  const requestBody: any = {
+    messaging_product: "whatsapp",
+    to: formattedPhone,
+    type: "interactive",
+    interactive: {
+      type: "button",
+      body: {
+        text: options.body
+      },
+      action: {
+        buttons: options.buttons.map(btn => ({
+          type: "reply",
+          reply: {
+            id: btn.id,
+            title: btn.title
+          }
+        }))
+      }
+    }
+  };
+
+  // Add optional header
+  if (options.header) {
+    requestBody.interactive.header = {
+      type: "text",
+      text: options.header
+    };
+  }
+
+  // Add optional footer
+  if (options.footer) {
+    requestBody.interactive.footer = {
+      text: options.footer
+    };
+  }
+
+  console.log("Sending WhatsApp button message:", {
+    to: formattedPhone,
+    buttons: options.buttons.length
+  });
+
+  const res = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  const responseData = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const errorMessage = responseData.error?.message || responseData.error?.error_user_msg || `WhatsApp API error: ${res.status}`;
+    const errorCode = responseData.error?.code || res.status;
+    const errorType = responseData.error?.type || "unknown";
+    
+    console.error("WhatsApp Buttons API Error:", {
+      status: res.status,
+      error: responseData.error,
+      phone: formattedPhone
+    });
+    
+    throw new Error(`${errorMessage} (Code: ${errorCode}, Type: ${errorType})`);
+  }
+
+  console.log("WhatsApp button message sent successfully:", responseData);
+  return responseData;
+}

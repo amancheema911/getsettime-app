@@ -34,6 +34,29 @@ import {
 const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
 
 /**
+ * Helper function to detect if a message is a phone number
+ * Checks for patterns like: +1234567890, 1234567890, (123) 456-7890, etc.
+ */
+function isPhoneNumber(text: string): boolean {
+  // Remove all spaces, dashes, parentheses, and plus signs for validation
+  const cleaned = text.replace(/[\s\-\(\)\+]/g, "");
+  
+  // Check if it's all digits and has at least 10 digits (minimum for phone number)
+  // and at most 15 digits (international max)
+  if (!/^\d+$/.test(cleaned)) {
+    return false;
+  }
+  
+  const digitCount = cleaned.length;
+  
+  // Phone numbers should be between 10 and 15 digits
+  // Also check if the original text has phone-like formatting
+  return digitCount >= 10 && digitCount <= 15 && 
+         (text.includes("+") || text.includes("-") || text.includes("(") || 
+          text.includes(")") || digitCount >= 10);
+}
+
+/**
  * GET: Verification endpoint for WhatsApp Cloud API webhook
  * Meta will call this once when you configure the webhook.
  * 
@@ -280,6 +303,29 @@ export async function POST(req: Request) {
                   ],
                 });
               }
+              // Handle "phone" or "add phone" command - prompt for phone number
+              else if (lowerBody === "phone" || lowerBody === "add phone" || lowerBody === "addphone" || lowerBody === "contact") {
+                await sendWhatsAppMessage(
+                  from,
+                  "📱 *Phone Number Request*\n\nPlease send us your phone number.\n\n*Format:*\n• Include country code\n• You can use + or just numbers\n• Spaces, dashes, or parentheses are okay\n\n*Examples:*\n• +1234567890\n• 1234567890\n• +1 (234) 567-8900\n\nJust type your number and send it! 📞"
+                );
+              }
+              // Handle phone number input (check if message looks like a phone number)
+              else if (isPhoneNumber(msgBody)) {
+                // Extract phone number (remove spaces, dashes, parentheses)
+                const phoneNumber = msgBody.replace(/[\s\-\(\)]/g, "");
+                console.log("✅ Phone number received:", phoneNumber, "from:", from);
+                
+                await sendWhatsAppReply(
+                  from,
+                  `✅ *Phone Number Received*\n\nThank you! We have saved your phone number:\n*${phoneNumber}*\n\nWe will contact you shortly. If you need to update it, just send "phone" again.`,
+                  messageId
+                );
+                
+                // Here you can add logic to save the phone number to your database
+                // Example:
+                // await savePhoneNumberToDatabase(from, phoneNumber);
+              }
               // Default response for other messages
               else {
                 await sendWhatsAppMessage(
@@ -336,3 +382,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

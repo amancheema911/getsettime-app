@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 
-const DEFAULT_APP_URL = 'http://localhost:3000';
+const DEFAULT_APP_URL = process.env.NEXT_PUBLIC_APP_URL || '';
 
 /**
  * Resolves the application base URL (no trailing slash).

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface Department {
   id: string;
@@ -20,12 +21,14 @@ interface ServiceProvider {
 }
 
 export default function EmergencyBookingForm() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     service_provider_id: "",
     department_id: "",
+    priority: "high" as "high" | "critical",
     additional_description: "",
   });
   const [eventTypeIdMaxDuration, setEventTypeIdMaxDuration] = useState<string | null>(null);
@@ -128,6 +131,12 @@ export default function EmergencyBookingForm() {
         throw new Error("Not authenticated");
       }
 
+      const priorityLabel = formData.priority === "critical" ? "Critical" : "High";
+      const notes = formData.additional_description.trim();
+      const description = notes
+        ? `[Priority: ${priorityLabel}]\n\n${notes}`
+        : `[Priority: ${priorityLabel}]`;
+
       const res = await fetch("/api/bookings/emergency", {
         method: "POST",
         headers: {
@@ -141,7 +150,7 @@ export default function EmergencyBookingForm() {
           event_type_id: eventTypeIdMaxDuration || null,
           service_provider_id: formData.service_provider_id || null,
           department_id: formData.department_id || null,
-          additional_description: formData.additional_description.trim() || null,
+          additional_description: description,
         }),
       });
 
@@ -151,6 +160,7 @@ export default function EmergencyBookingForm() {
       }
 
       setSuccess(true);
+      window.dispatchEvent(new Event("bookings-viewed-update"));
       setFormData((prev) => ({
         ...prev,
         name: "",
@@ -168,141 +178,238 @@ export default function EmergencyBookingForm() {
     }
   };
 
+  const handleCancel = () => {
+    router.back();
+  };
+
   const providerLabel = (p: ServiceProvider) =>
     p.raw_user_meta_data?.name || p.raw_user_meta_data?.full_name || p.email || p.id;
 
+  const inputBase =
+    "w-full h-11 px-4 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500";
+  const selectBase =
+    "w-full h-11 px-4 rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500";
+
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl font-semibold text-slate-800 mb-4">Emergency Booking</h1>
+    <div className="w-full max-w-4xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900">Emergency Booking</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Create a high-priority booking for urgent cases. Required fields are marked with *.
+        </p>
+      </div>
+
+      {/* Card */}
       <form
         onSubmit={handleSubmit}
-        className="grid md:grid-cols-2 gap-4 p-5 rounded-xl border border-slate-200 bg-gray-50/70"
+        className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden"
       >
-        {error && (
-          <div className="md:col-span-2 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-            {error}
+        {/* Info banner */}
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5" aria-hidden="true">
+              ⚡
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                Emergency bookings bypass standard availability rules (if enabled).
+              </p>
+              <p className="text-sm text-gray-600">
+                Please double-check patient contact details before submitting.
+              </p>
+            </div>
           </div>
-        )}
-        {success && (
-          <div className="md:col-span-2 p-3 bg-green-100 text-green-700 rounded-lg text-sm">
-            Emergency booking created successfully.
-          </div>
-        )}
-
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1">
-            Name *
-          </label>
-          <input
-            id="name"
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-            required
-          />
         </div>
 
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
-            Email *
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-            required
-          />
+        <div className="p-6 space-y-8">
+          {error && (
+            <div className="p-3 bg-red-100 text-red-700 rounded-xl text-sm" role="alert">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="p-3 bg-green-100 text-green-700 rounded-xl text-sm" role="status">
+              Emergency booking created successfully.
+            </div>
+          )}
+
+          {/* Section: Patient Details */}
+          <section aria-labelledby="patient-details-heading">
+            <h2
+              id="patient-details-heading"
+              className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4"
+            >
+              Patient Details
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Field label="Name *" htmlFor="name">
+                <input
+                  id="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className={inputBase}
+                  placeholder="Enter full name"
+                  required
+                />
+              </Field>
+
+              <Field label="Email *" htmlFor="email">
+                <input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className={inputBase}
+                  placeholder="name@email.com"
+                  required
+                />
+              </Field>
+
+              <Field label="Phone *" htmlFor="phone">
+                <input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className={inputBase}
+                  placeholder="+91 98765 43210"
+                  required
+                />
+              </Field>
+
+              <Field label="Department *" htmlFor="department">
+                <select
+                  id="department"
+                  value={formData.department_id}
+                  onChange={(e) =>
+                    setFormData({ ...formData, department_id: e.target.value })
+                  }
+                  className={selectBase}
+                  disabled={loadingDepts}
+                  required
+                >
+                  <option value="">Select department</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          </section>
+
+          {/* Divider */}
+          <div className="h-px bg-gray-100" />
+
+          {/* Section: Booking Details */}
+          <section aria-labelledby="booking-details-heading">
+            <h2
+              id="booking-details-heading"
+              className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4"
+            >
+              Booking Details
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Field label="Service Provider *" htmlFor="service_provider">
+                <select
+                  id="service_provider"
+                  value={formData.service_provider_id}
+                  onChange={(e) =>
+                    setFormData({ ...formData, service_provider_id: e.target.value })
+                  }
+                  className={selectBase}
+                  disabled={loadingProviders}
+                  required
+                >
+                  <option value="">Select provider</option>
+                  {serviceProviders.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {providerLabel(p)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Priority" htmlFor="priority">
+                <select
+                  id="priority"
+                  value={formData.priority}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      priority: e.target.value as "high" | "critical",
+                    })
+                  }
+                  className={selectBase}
+                >
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </Field>
+            </div>
+
+            <div className="mt-5">
+              <Field label="Additional Information *" htmlFor="additional_description">
+                <textarea
+                  id="additional_description"
+                  rows={5}
+                  value={formData.additional_description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, additional_description: e.target.value })
+                  }
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Symptoms, urgency reason, notes for the provider..."
+                  required
+                />
+              </Field>
+              <p className="text-xs text-gray-500 mt-2">
+                Tip: Keep it short and actionable (what happened, since when, severity).
+              </p>
+            </div>
+          </section>
         </div>
 
-        <div>
-          <label htmlFor="phone" className="block text-sm font-medium text-slate-700 mb-1">
-            Phone *
-          </label>
-          <input
-            id="phone"
-            type="tel"
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="service_provider" className="block text-sm font-medium text-slate-700 mb-1">
-            Service Provider *
-          </label>
-          <select
-            id="service_provider"
-            value={formData.service_provider_id}
-            onChange={(e) =>
-              setFormData({ ...formData, service_provider_id: e.target.value })
-            }
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-            disabled={loadingProviders}
-            required
+        {/* Footer Actions */}
+        <div className="px-6 py-4 border-t border-gray-100 bg-white flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
           >
-            <option value="">Select...</option>
-            {serviceProviders.map((p) => (
-              <option key={p.id} value={p.id}>
-                {providerLabel(p)}
-              </option>
-            ))}
-          </select>
-        </div>
+            Cancel
+          </button>
 
-        <div>
-          <label htmlFor="department" className="block text-sm font-medium text-slate-700 mb-1">
-            Department *
-          </label>
-          <select
-            id="department"
-            value={formData.department_id}
-            onChange={(e) =>
-              setFormData({ ...formData, department_id: e.target.value })
-            }
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-            disabled={loadingDepts}
-            required
-          >
-            <option value="">Select...</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="md:col-span-2">
-          <label htmlFor="additional_description" className="block text-sm font-medium text-slate-700 mb-1">
-            Additional Information *
-          </label>
-          <textarea
-            id="additional_description"
-            rows={3}
-            value={formData.additional_description}
-            onChange={(e) =>
-              setFormData({ ...formData, additional_description: e.target.value })
-            }
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-            required
-          />
-        </div>
-
-        <div className="md:col-span-2 flex justify-end gap-2">
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition disabled:opacity-60"
           >
             {loading ? "Saving..." : "Add Emergency Booking"}
           </button>
         </div>
       </form>
     </div>
+  );
+}
+
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block" htmlFor={htmlFor}>
+      <span className="text-sm font-medium text-gray-700">{label}</span>
+      <div className="mt-2">{children}</div>
+    </label>
   );
 }

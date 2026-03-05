@@ -13,15 +13,15 @@ export function formatDateTimeLocal(dateString: string | null): string {
 }
 
 /**
- * Format date for display (MM/DD/YYYY)
+ * Format date for display (e.g. Dec 11, 2025)
  */
 export function formatDate(dateString: string | null): string {
   if (!dateString) return 'N/A';
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+    month: 'short',
+    day: 'numeric',
   });
 }
 

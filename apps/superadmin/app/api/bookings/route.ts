@@ -12,10 +12,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10', 10);
     const offset = (page - 1) * limit;
     
-    // Parse sorting parameters
-    const sortBy = searchParams.get('sortBy') || 'date';
-    const sortOrder = searchParams.get('sortOrder') || 'desc';
-    const ascending = sortOrder === 'asc';
+    // Parse sorting parameter
+    const sortBy = searchParams.get('sort') || 'start_at';
     
     // Parse filter parameters
     const filter = searchParams.get('filter') || '';
@@ -80,15 +78,21 @@ export async function GET(request: NextRequest) {
     }
     
     // Apply sorting
-    const validSortFields: Record<string, string> = {
-      'date': 'start_at',
-      'name': 'invitee_name',
-      'workspace': 'workspace_id',
-      'created_at': 'created_at',
-    };
-    
-    const sortField = validSortFields[sortBy] || 'start_at';
-    query = query.order(sortField, { ascending });
+    const now = new Date().toISOString();
+    const orderColumn = sortBy === 'latest' || sortBy === 'new' ? 'created_at' : 'start_at';
+    const ascending = sortBy === 'upcoming';
+
+    query = query.order(orderColumn, { ascending });
+
+    if (sortBy === 'upcoming') {
+      query = query.gte('start_at', now);
+    }
+    if (sortBy === 'past') {
+      query = query.lt('start_at', now);
+    }
+    if (sortBy === 'new') {
+      query = query.eq('is_viewed', false);
+    }
     
     // Apply pagination
     query = query.range(offset, offset + limit - 1);

@@ -7,9 +7,10 @@ import { supabase } from "@/lib/supabaseClient";
 import AvailabilityTimesheet from "@/src/components/Settings/AvailabilityTimesheet";
 import AlertMessage from "@/src/components/Auth/AlertMessage";
 
-type ProfessionType = "Doctor" | "Salon" | "Artist";
+type Profession = { id: number; name: string };
 
 const ONBOARDING_STEPS = 4;
+const OTHER_VALUE = "__other__";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -29,9 +30,14 @@ export default function RegisterForm() {
   const [onboardingSaving, setOnboardingSaving] = useState(false);
   const [workspaceId, setWorkspaceId] = useState<number | null>(null);
   const [workspaceType, setWorkspaceType] = useState<string | null>(null);
-  // Step 1
-  const [profession, setProfession] = useState<ProfessionType | "">("");
-  const [departmentName, setDepartmentName] = useState("");
+  // Step 1 — Profession
+  const [professions, setProfessions] = useState<Profession[]>([]);
+  const [selectedProfessionId, setSelectedProfessionId] = useState<string>("");
+  const [customProfession, setCustomProfession] = useState("");
+  // Step 1 — Department
+  const [departmentSuggestions, setDepartmentSuggestions] = useState<string[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
+  const [customDepartment, setCustomDepartment] = useState("");
   // Step 4
   const [meetingOptions, setMeetingOptions] = useState({
     google_meet: true,
@@ -82,19 +88,31 @@ export default function RegisterForm() {
       return;
     }
     setWorkspaceId(wid);
-    const { data: ws } = await supabase.from("workspaces").select("type").eq("id", wid).maybeSingle();
-    const hasType = !!ws?.type;
+    const { data: ws } = await supabase.from("workspaces").select("type, profession_id").eq("id", wid).maybeSingle();
+    const hasType = !!ws?.type || !!ws?.profession_id;
     if (isOnboardingParam || isConfirmedParam || !hasType) {
       setOnboardingMode(true);
       setWorkspaceType(ws?.type ?? null);
-      setProfession((ws?.type as ProfessionType) ?? "");
-      const { data: firstDept } = await supabase
-        .from("departments")
-        .select("name")
-        .eq("workspace_id", wid)
-        .limit(1)
-        .maybeSingle();
-      setDepartmentName((firstDept?.name as string) ?? "");
+
+      // Fetch professions list
+      const profRes = await fetch("/api/professions", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (profRes.ok) {
+        const profBody = await profRes.json();
+        setProfessions(profBody.professions ?? []);
+        if (ws?.profession_id) {
+          setSelectedProfessionId(String(ws.profession_id));
+        }
+      }
+
+      // Fetch department name suggestions via superadmin proxy (same-origin, avoids CORS)
+      const deptRes = await fetch("/api/superadmin/departments");
+      if (deptRes.ok) {
+        const deptBody = await deptRes.json();
+        const suggestions: string[] = deptBody.departments ?? [];
+        setDepartmentSuggestions(suggestions);
+      }
       const stepParam = searchParams.get("step");
       const stepNum = stepParam ? Math.min(ONBOARDING_STEPS, Math.max(1, parseInt(stepParam, 10) || 1)) : 1;
       setOnboardingStep(Number.isNaN(stepNum) ? 1 : stepNum);
@@ -126,37 +144,80 @@ export default function RegisterForm() {
   }, [searchParams, router]);
 
   const saveStep1 = async (): Promise<boolean> => {
-    if (!profession || !departmentName.trim() || workspaceId == null) return false;
+    const isOtherProfession = selectedProfessionId === OTHER_VALUE;
+    const isOtherDepartment = selectedDepartment === OTHER_VALUE;
+    const hasProfession = isOtherProfession ? !!customProfession.trim() : !!selectedProfessionId;
+    const departmentName = isOtherDepartment ? customDepartment.trim() : selectedDepartment;
+    const hasDepartment = !!departmentName;
+
+    if (!hasProfession || !hasDepartment || workspaceId == null) return false;
     setOnboardingSaving(true);
     setError("");
     try {
       const token = (await supabase.auth.getSession()).data.session?.access_token;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      // Resolve profession
+      let professionId: number;
+      let professionName: string;
+
+      if (isOtherProfession) {
+        const res = await fetch("/api/professions", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ name: customProfession.trim() }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? "Failed to create profession");
+        }
+        const { profession } = await res.json();
+        professionId = profession.id;
+        professionName = profession.name;
+        setProfessions((prev) =>
+          prev.some((p) => p.id === professionId) ? prev : [...prev, { id: professionId, name: professionName }]
+        );
+        setSelectedProfessionId(String(professionId));
+        setCustomProfession("");
+      } else {
+        professionId = Number(selectedProfessionId);
+        professionName = professions.find((p) => p.id === professionId)?.name ?? "";
+      }
+
+      // Save profession to workspace
       const workspaceRes = await fetch("/api/workspace", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ type: profession }),
+        headers,
+        body: JSON.stringify({ type: professionName, profession_id: professionId }),
       });
       if (!workspaceRes.ok) {
         const err = await workspaceRes.json().catch(() => ({}));
         throw new Error(err.error ?? "Failed to save profession");
       }
-      const { data: existing } = await supabase
-        .from("departments")
-        .select("id")
-        .eq("workspace_id", workspaceId)
-        .limit(1)
-        .maybeSingle();
-      if (!existing) {
-        const { error: insertErr } = await supabase.from("departments").insert({
-          workspace_id: workspaceId,
-          name: departmentName.trim(),
+
+      // Check if department already exists in this workspace before creating
+      const existingRes = await fetch("/api/departments", { headers });
+      const existingDepts: { id: number; name: string }[] = existingRes.ok
+        ? (await existingRes.json()).departments ?? []
+        : [];
+      const alreadyExists = existingDepts.some(
+        (d) => d.name.toLowerCase() === departmentName.toLowerCase()
+      );
+
+      if (!alreadyExists) {
+        const deptRes = await fetch("/api/departments", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ name: departmentName }),
         });
-        if (insertErr) throw insertErr;
+        if (!deptRes.ok) {
+          const err = await deptRes.json().catch(() => ({}));
+          throw new Error(err.error ?? "Failed to create department");
+        }
       }
-      setWorkspaceType(profession);
+
+      setWorkspaceType(professionName);
       return true;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to save");
@@ -331,35 +392,82 @@ export default function RegisterForm() {
           )}
 
           {onboardingStep === 1 && (
-            <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 space-y-6">
-              <h2 className="text-lg font-semibold text-gray-800">Profession & Department</h2>
+            <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 space-y-8">
+              {/* Profession badges */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Profession type</label>
-                <div className="flex gap-3 flex-wrap">
-                  {(["Doctor", "Salon", "Artist"] as const).map((p) => (
+                <h2 className="text-lg font-semibold text-gray-800 mb-1">What is your profession?</h2>
+                <p className="text-sm text-gray-500 mb-4">Select the option that best describes your work</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {professions.map((p) => (
                     <button
-                      key={p}
+                      key={p.id}
                       type="button"
-                      onClick={() => setProfession(p)}
-                      className={`px-4 py-2 rounded-lg border font-medium transition ${
-                        profession === p ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                      onClick={() => {
+                        setSelectedProfessionId(String(p.id));
+                        setCustomProfession("");
+                      }}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left font-medium transition ${
+                        selectedProfessionId === String(p.id)
+                          ? "border-blue-600 bg-blue-50 text-blue-700"
+                          : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
                       }`}
                     >
-                      {p}
+                      <span className="text-base">{p.name}</span>
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProfessionId(OTHER_VALUE)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left font-medium transition ${
+                      selectedProfessionId === OTHER_VALUE
+                        ? "border-blue-600 bg-blue-50 text-blue-700"
+                        : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="text-base">Other</span>
+                  </button>
                 </div>
+                {selectedProfessionId === OTHER_VALUE && (
+                  <input
+                    type="text"
+                    placeholder="Enter your profession"
+                    className="mt-3 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={customProfession}
+                    onChange={(e) => setCustomProfession(e.target.value)}
+                    autoFocus
+                  />
+                )}
               </div>
+
+              {/* Department */}
               <div>
-                <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">Department</label>
-                <input
+                <h2 className="text-lg font-semibold text-gray-800 mb-1">Department</h2>
+                <p className="text-sm text-gray-500 mb-4">Choose or add your department</p>
+                <select
                   id="department"
-                  type="text"
-                  placeholder="e.g. General Practice"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={departmentName}
-                  onChange={(e) => setDepartmentName(e.target.value)}
-                />
+                  value={selectedDepartment}
+                  onChange={(e) => {
+                    setSelectedDepartment(e.target.value);
+                    if (e.target.value !== OTHER_VALUE) setCustomDepartment("");
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                >
+                  <option value="">Select a department</option>
+                  {departmentSuggestions.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                  <option value={OTHER_VALUE}>Other — add new</option>
+                </select>
+                {selectedDepartment === OTHER_VALUE && (
+                  <input
+                    type="text"
+                    placeholder="e.g. General Practice"
+                    className="mt-3 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={customDepartment}
+                    onChange={(e) => setCustomDepartment(e.target.value)}
+                    autoFocus
+                  />
+                )}
               </div>
             </div>
           )}
@@ -475,11 +583,24 @@ export default function RegisterForm() {
             </div>
           )}
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-between">
+            {onboardingStep > 1 ? (
+              <button
+                type="button"
+                onClick={() => { setError(""); setOnboardingStep((s) => s - 1); }}
+                disabled={onboardingSaving}
+                className="px-6 py-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Back
+              </button>
+            ) : <span />}
             <button
               type="button"
               onClick={handleOnboardingNext}
-              disabled={onboardingSaving || (onboardingStep === 1 && (!profession || !departmentName.trim()))}
+              disabled={onboardingSaving || (onboardingStep === 1 && (
+                (selectedProfessionId === OTHER_VALUE ? !customProfession.trim() : !selectedProfessionId) ||
+                (selectedDepartment === OTHER_VALUE ? !customDepartment.trim() : !selectedDepartment)
+              ))}
               className="px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {onboardingSaving ? "Saving…" : onboardingStep === 4 ? "Finish" : "Next"}

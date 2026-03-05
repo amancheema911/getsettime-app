@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     const supabase = createSupabaseServerClient();
     const { data, error } = await supabase
       .from('workspaces')
-      .select('id, name, slug, logo_url')
+      .select('id, name, slug, logo_url, type, profession_id')
       .eq('id', workspaceId)
       .single();
 
@@ -83,10 +83,10 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, slug, logo_url, type } = body;
+    const { name, slug, logo_url, type, profession_id } = body;
 
     const supabase = createSupabaseServerClient();
-    const updateData: { name?: string; slug?: string; logo_url?: string | null; type?: string | null } = {};
+    const updateData: { name?: string; slug?: string; logo_url?: string | null; type?: string | null; profession_id?: number | null } = {};
 
     if (name !== undefined) {
       updateData.name = name;
@@ -117,7 +117,11 @@ export async function PUT(req: NextRequest) {
     }
 
     if (type !== undefined) {
-      updateData.type = type && ['Doctor', 'Salon', 'Artist'].includes(type) ? type : null;
+      updateData.type = type && typeof type === 'string' ? type : null;
+    }
+
+    if (profession_id !== undefined) {
+      updateData.profession_id = typeof profession_id === 'number' ? profession_id : null;
     }
 
     if (Object.keys(updateData).length === 0) {

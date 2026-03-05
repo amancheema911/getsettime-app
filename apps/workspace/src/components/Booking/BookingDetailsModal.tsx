@@ -70,9 +70,16 @@ export function BookingDetailsModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between rounded-t-xl">
-          <h3 className="text-xl font-semibold text-slate-800">
-            Booking Details
-          </h3>
+          <div>
+            <h3 className="text-xl font-semibold text-slate-800">
+              Booking Details
+            </h3>
+            {booking.created_at && (
+              <p className="text-xs text-slate-500 mt-0.5">
+                Created on {formatDate(booking.created_at)} at {formatTime(booking.created_at)}
+              </p>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"

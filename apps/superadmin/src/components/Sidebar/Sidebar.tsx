@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "../../providers/AuthProvider";
 
-import { FcHome } from "react-icons/fc";
-import { FcBriefcase } from "react-icons/fc";
-import { FcPlanner } from "react-icons/fc";
-import { FcAutomatic } from "react-icons/fc";
-import { FcBusinessman } from "react-icons/fc";
+import {
+  FcHome,
+  FcBriefcase,
+  FcPlanner,
+  FcAutomatic,
+  FcBusinessman,
+  FcGraduationCap,
+} from "@app/icons";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -17,7 +20,26 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen }: SidebarProps) {
   const [activeMenu, setActiveMenu] = useState("");
+  const [newBookingsCount, setNewBookingsCount] = useState(0);
   const { user } = useAuth();
+
+  const fetchNewBookingsCount = useCallback(async () => {
+    try {
+      const res = await fetch('/api/bookings/new-count');
+      if (res.ok) {
+        const { count } = await res.json();
+        setNewBookingsCount(count ?? 0);
+      }
+    } catch {
+      // silently ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNewBookingsCount();
+    const interval = setInterval(fetchNewBookingsCount, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchNewBookingsCount]);
 
   return (
     <aside className={`bg-white border-r border-gray-200 fixed top-0 left-0 z-40 h-screen w-64 transition-transform duration-300 ease-in-out ${ isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} shadow-lg`}>
@@ -45,9 +67,19 @@ export default function Sidebar({ isOpen }: SidebarProps) {
             Workspaces
           </Link>        
           
+          <Link href="/professions" className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${ activeMenu === "professions" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50" }`} onClick={() => setActiveMenu("professions")}>
+            <FcGraduationCap className="h-5 w-5 mr-3" />
+            Professions
+          </Link>        
+          
           <Link href="/bookings" className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${ activeMenu === "bookings" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50" }`} onClick={() => setActiveMenu("bookings")}>
             <FcPlanner className="h-5 w-5 mr-3" />
             All Bookings
+            {newBookingsCount > 0 && (
+              <span className="ml-auto inline-flex items-center justify-center rounded-full bg-blue-600 px-2 py-0.5 text-xs font-semibold text-white min-w-[20px]">
+                {newBookingsCount}
+              </span>
+            )}
           </Link>        
           
           <Link href="/settings" className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${ activeMenu === "settings" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50" }`} onClick={() => setActiveMenu("settings")}>

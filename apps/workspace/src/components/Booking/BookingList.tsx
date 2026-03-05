@@ -14,6 +14,7 @@ import { BookingFilters } from "./BookingFilters";
 import { BookingTableRow, type DisplayBooking } from "./BookingTableRow";
 import { BookingDetailsModal } from "./BookingDetailsModal";
 import { Pagination } from "@app/ui";
+import { BookingTableSkeleton } from "./BookingTableSkeleton";
 import { AlertModal } from "@/src/components/ui/AlertModal";
 import { ConfirmModal } from "@/src/components/ui/ConfirmModal";
 
@@ -206,10 +207,37 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
     ]
   );
 
+  const markBookingAsViewed = useCallback(async (bookingId: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return;
+
+    try {
+      await fetch('/api/bookings', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ id: bookingId, is_viewed: true }),
+      });
+
+      setBookings((prev) =>
+        debouncedSort === 'new'
+          ? prev.filter((b) => b.id !== bookingId)
+          : prev.map((b) => (b.id === bookingId ? { ...b, is_viewed: true } : b))
+      );
+
+      window.dispatchEvent(new Event('bookings-viewed-update'));
+    } catch (error) {
+      console.error('Error marking booking as viewed:', error);
+    }
+  }, [debouncedSort]);
+
   const handleEdit = useCallback((booking: Booking) => {
+    if (!booking.is_viewed) markBookingAsViewed(booking.id);
     setEditingBooking(booking);
     setShowForm(true);
-  }, []);
+  }, [markBookingAsViewed]);
 
   const handleCreate = useCallback(() => {
     setEditingBooking(null);
@@ -268,6 +296,14 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
     setIsModalOpen(true);
   }, []);
 
+  const handleCloseModal = useCallback(() => {
+    if (selectedBooking && !selectedBooking.is_viewed) {
+      markBookingAsViewed(selectedBooking.id);
+    }
+    setIsModalOpen(false);
+    setSelectedBooking(null);
+  }, [selectedBooking, markBookingAsViewed]);
+
   const displayBookings = useMemo<DisplayBooking[]>(
     () =>
       bookings.map((booking) => ({
@@ -284,6 +320,7 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
         created_at: booking.created_at
           ? `${formatDate(booking.created_at)} ${formatTime(booking.created_at)}`
           : "N/A",
+        is_viewed: booking.is_viewed ?? true,
       })),
     [bookings, serviceProviders]
   );
@@ -293,9 +330,13 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
+  const handleResetFilters = useCallback(() => {
+    setCurrentPage(1);
+  }, []);
+
   return (
     <section className="space-y-6">
-      <header className="flex flex-wrap justify-between relative gap-3">
+      <header className="flex flex-wrap justify-between items-center gap-3">
         <div className="text-sm text-slate-500">
           <h3 className="text-xl font-semibold text-slate-800">Bookings</h3>
           <p className="text-xs text-slate-500">
@@ -304,9 +345,13 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
         </div>
         <button
           onClick={() => (showMultiStepForm ? handleFormCancel() : handleCreate())}
-          className="cursor-pointer text-sm font-bold text-indigo-600 transition"
+          className={`px-5 py-2.5 rounded-xl shadow transition whitespace-nowrap shrink-0 ${
+            showMultiStepForm
+              ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700'
+          }`}
         >
-          {showMultiStepForm ? "Cancel" : "+ New Booking"}
+          {showMultiStepForm ? 'Cancel' : '+ New Booking'}
         </button>
       </header>
 
@@ -359,6 +404,7 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
         onStatusFilterChange={setStatusFilter}
         onEventTypeFilterChange={setEventTypeFilter}
         onSortFilterChange={setSortFilter}
+        onResetFilters={handleResetFilters}
       />
 
       {showForm && (
@@ -419,9 +465,7 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
 
       <div className="overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-slate-500">
-            Loading bookings...
-          </div>
+          <BookingTableSkeleton />
         ) : bookings.length === 0 ? (
           <div className="p-8 text-center text-slate-500">
             <p className="text-lg mb-2">No bookings found</p>
@@ -495,7 +539,7 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
       {isModalOpen && selectedBooking && (
         <BookingDetailsModal
           booking={selectedBooking}
-          onClose={() => setIsModalOpen(false)}
+          onClose={handleCloseModal}
           intakeFormSettings={intakeFormSettings}
           services={services}
           departments={departments}

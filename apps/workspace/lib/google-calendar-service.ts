@@ -26,7 +26,7 @@ async function getCalendarClient(workspaceId: number) {
   const integration = await getIntegration(workspaceId, 'google_calendar');
   if (!integration?.access_token) return null;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || 'http://localhost:3001';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || '';
   const redirectUri = `${baseUrl.replace(/\/$/, '')}/api/integrations/google/callback`;
   const oauth2Client = getGoogleOAuthClient(redirectUri);
 

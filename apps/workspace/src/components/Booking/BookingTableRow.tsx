@@ -12,6 +12,7 @@ export interface DisplayBooking {
   status: string;
   service_provider_name: string;
   created_at: string;
+  is_viewed: boolean;
 }
 
 interface BookingTableRowProps {
@@ -33,7 +34,14 @@ export function BookingTableRow({
         className="px-6 py-4 whitespace-nowrap align-middle text-sm"
         data-label="Name"
       >
-        <span className="font-medium text-slate-900">{displayBooking.name}</span>
+        <span className="font-medium text-slate-900">
+          {displayBooking.name}
+          {!displayBooking.is_viewed && (
+            <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+              New
+            </span>
+          )}
+        </span>
       </td>
       <td
         className="px-6 py-4 whitespace-nowrap align-middle text-sm"

@@ -12,6 +12,7 @@ export type Booking = {
   location: Record<string, unknown> | null;
   payment_id: string | null;
   metadata: Record<string, unknown> | null;
+  is_viewed: boolean;
   created_at: string;
   updated_at: string;
   event_types?: {

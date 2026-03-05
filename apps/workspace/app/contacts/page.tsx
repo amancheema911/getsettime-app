@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { Contact, FormContact } from "@/src/types/contact";
 import { AlertModal } from "@/src/components/ui/AlertModal";
 import { ConfirmModal } from "@/src/components/ui/ConfirmModal";
+import { ContactTableSkeleton } from "@/src/components/Contacts/ContactTableSkeleton";
 
 function toFormContact(c: Contact): FormContact {
   return {
@@ -248,7 +249,7 @@ export default function ContactsCreative() {
       <div className="overflow-hidden">
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="px-6 py-12 text-center text-slate-500">Loading contacts...</div>
+            <ContactTableSkeleton />
           ) : error ? (
             <div className="px-6 py-12 text-center text-red-600">{error}</div>
           ) : (

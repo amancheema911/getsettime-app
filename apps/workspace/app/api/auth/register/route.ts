@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
-    const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || (typeof req.url === 'string' && req.url.startsWith('http') ? new URL(req.url).origin : '') || 'http://localhost:3001';
+    const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || (typeof req.url === 'string' && req.url.startsWith('http') ? new URL(req.url).origin : '') || '';
     const redirectTo = `${origin.replace(/\/$/, '')}/register?confirmed=1`;
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {

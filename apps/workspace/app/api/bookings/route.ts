@@ -69,14 +69,26 @@ export async function GET(req: NextRequest) {
     const sortBy = searchParams.get('sort') || 'start_at';
     const offset = (page - 1) * limit;
     
-    const orderColumn = sortBy === 'latest' ? 'created_at' : 'start_at';
-    
+    const now = new Date().toISOString();
+    const orderColumn = sortBy === 'latest' || sortBy === 'new' ? 'created_at' : 'start_at';
+    const ascending = sortBy === 'upcoming';
+
     // Build query with search filter, event_types and contacts join
     let query = supabase
       .from('bookings')
       .select('*, event_types(title), contacts(name, phone, email)', { count: 'exact' })
       .eq('workspace_id', workspaceId)
-      .order(orderColumn, { ascending: false });
+      .order(orderColumn, { ascending });
+
+    if (sortBy === 'upcoming') {
+      query = query.gte('start_at', now);
+    }
+    if (sortBy === 'past') {
+      query = query.lt('start_at', now);
+    }
+    if (sortBy === 'new') {
+      query = query.eq('is_viewed', false);
+    }
 
     // Apply search filter if provided
     if (search.trim()) {
@@ -633,6 +645,7 @@ export async function PATCH(req: NextRequest) {
       location,
       payment_id,
       metadata,
+      is_viewed,
     } = body;
 
     if (!id) {
@@ -658,6 +671,7 @@ export async function PATCH(req: NextRequest) {
     if (location !== undefined) updateData.location = location || null;
     if (payment_id !== undefined) updateData.payment_id = payment_id || null;
     if (metadata !== undefined) updateData.metadata = metadata || null;
+    if (is_viewed !== undefined) updateData.is_viewed = is_viewed;
     const { data, error } = await supabase
       .from('bookings')
       .update(updateData)

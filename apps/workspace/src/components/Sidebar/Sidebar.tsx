@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "../../providers/AuthProvider";
 import { useWorkspaceSettings } from "../../hooks/useWorkspaceSettings";
+import { supabase } from "@/lib/supabaseClient";
 
 import {
   FcHome,
@@ -22,7 +23,7 @@ import {
   FcList,
   FcOrganization,
   FcHighBattery,
-} from "@/src/icons/sidebar-icons";
+} from "@app/icons";
 
 const PATH_TO_MENU: Record<string, string> = {
   "/": "dashboard",
@@ -63,6 +64,35 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { general, loading: loadingConfig, workspaceName, workspaceLogo } = useWorkspaceSettings();
 
   const activeMenu = pathnameToActiveMenu(pathname);
+
+  const [newBookingsCount, setNewBookingsCount] = useState(0);
+
+  const fetchNewBookingsCount = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return;
+
+    try {
+      const res = await fetch('/api/bookings/new-count', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        const { count } = await res.json();
+        setNewBookingsCount(count ?? 0);
+      }
+    } catch {
+      // silently ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNewBookingsCount();
+    const interval = setInterval(fetchNewBookingsCount, 60_000);
+    window.addEventListener('bookings-viewed-update', fetchNewBookingsCount);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('bookings-viewed-update', fetchNewBookingsCount);
+    };
+  }, [fetchNewBookingsCount]);
 
   const logoUrl = workspaceLogo || "/getsettime-logo.svg";
   const accountName = workspaceName || "GetSetTime";
@@ -127,6 +157,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <Link href="/bookings" className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${ activeMenu === "bookings" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50" }`} onClick={handleNavClick}>
             <FcPlanner className="h-5 w-5 mr-3" />
             Bookings
+            {newBookingsCount > 0 && (
+              <span className="ml-auto inline-flex items-center justify-center rounded-full bg-blue-600 px-2 py-0.5 text-xs font-semibold text-white min-w-[20px]">
+                {newBookingsCount}
+              </span>
+            )}
           </Link>
           <Link href="/emergency-booking" className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${ activeMenu === "emergency-booking" ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50" }`} onClick={handleNavClick}>
             <FcHighBattery className="h-5 w-5 mr-3" />

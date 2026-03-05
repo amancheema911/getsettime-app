@@ -1,13 +1,4 @@
-export const BOOKING_STATUSES = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'confirmed', label: 'Confirmed' },
-  { value: 'cancelled', label: 'Cancelled' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'emergency', label: 'Emergency' },
-  { value: 'reschedule', label: 'Reschedule' },
-] as const;
-
-export type BookingStatus = (typeof BOOKING_STATUSES)[number]['value'];
+export { BOOKING_STATUSES, type BookingStatus } from '@app/db';
 
 export type Booking = {
   id: string;
@@ -26,6 +17,15 @@ export type Booking = {
   metadata: Record<string, unknown> | null;
   service_provider_id: string | null;
   department_id: string | null;
+  sms_reminder_sent_at: string | null;
+  sms_reminder_skipped_at: string | null;
+  email_reminder_sent_at: string | null;
+  email_reminder_skipped_at: string | null;
+  whatsapp_reminder_sent_at: string | null;
+  whatsapp_reminder_skipped_at: string | null;
+  followup_email_sent_at: string | null;
+  followup_email_skipped_at: string | null;
+  is_viewed: boolean;
   created_at: string;
   updated_at: string;
   event_types?: {

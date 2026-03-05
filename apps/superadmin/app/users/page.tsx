@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Pagination, usePagination } from '@app/ui';
 import { supabase } from '@/lib/supabaseClient';
 import type { Workspace } from '@app/db';
+import { UserTableSkeleton } from '@/src/components/Users/UserTableSkeleton';
 
 interface User {
   id: string;
@@ -431,7 +432,7 @@ const UsersPage: React.FC = () => {
       {/* Users List */}
       <section className="overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-slate-500">Loading users...</div>
+          <UserTableSkeleton />
         ) : users.length === 0 ? (
           <div className="p-8 text-center text-slate-500">
             <p className="text-lg mb-2">No users found</p>

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Pagination, usePagination } from '@app/ui';
 import { supabase } from '@/lib/supabaseClient';
 import type { Workspace } from '@app/db';
+import { WorkspaceTableSkeleton } from '@/src/components/Workspaces/WorkspaceTableSkeleton';
 
 const WorkspacesPage: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -432,7 +433,7 @@ const WorkspacesPage: React.FC = () => {
       {/* Workspaces List */}
       <section className="overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-slate-500">Loading workspaces...</div>
+          <WorkspaceTableSkeleton />
         ) : workspaces.length === 0 ? (
           <div className="p-8 text-center text-slate-500">
             <p className="text-lg mb-2">No workspaces found</p>

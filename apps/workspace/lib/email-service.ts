@@ -272,6 +272,152 @@ export const sendBookingConfirmationEmails = async (data: BookingEmailData): Pro
   };
 };
 
+// 24h reminder email template
+const getReminderEmailTemplate = (data: BookingEmailData): string => {
+  const departmentLabel = data.departmentName?.trim() ? data.departmentName : 'Not assigned';
+  const providerLabel = data.providerName?.trim() ? data.providerName : 'Not assigned';
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #D97706; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+    .content { background-color: #f9f9f9; padding: 30px; border: 1px solid #ddd; border-radius: 0 0 5px 5px; }
+    .booking-details { background-color: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #D97706; }
+    .detail-row { margin: 10px 0; }
+    .label { font-weight: bold; color: #D97706; }
+    .footer { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Upcoming Appointment Reminder</h1>
+    </div>
+    <div class="content">
+      <p>Dear ${data.inviteeName},</p>
+      <p>This is a friendly reminder that your appointment is coming up <strong>tomorrow</strong>.</p>
+
+      <div class="booking-details">
+        <h2 style="margin-top: 0; color: #D97706;">Appointment Details</h2>
+        <div class="detail-row">
+          <span class="label">Event:</span> ${data.eventTypeName}
+        </div>
+        <div class="detail-row">
+          <span class="label">Department:</span> ${departmentLabel}
+        </div>
+        <div class="detail-row">
+          <span class="label">Service Provider:</span> ${providerLabel}
+        </div>
+        <div class="detail-row">
+          <span class="label">Start Time:</span> ${formatDateTime(data.startTime, data.timezone)}
+        </div>
+        <div class="detail-row">
+          <span class="label">End Time:</span> ${formatDateTime(data.endTime, data.timezone)}
+        </div>
+        <div class="detail-row">
+          <span class="label">Duration:</span> ${data.duration} minutes
+        </div>
+        ${data.notes ? `
+        <div class="detail-row">
+          <span class="label">Notes:</span> ${data.notes}
+        </div>
+        ` : ''}
+      </div>
+
+      <p><strong>Please arrive 5-10 minutes before your scheduled time.</strong></p>
+      <p>If you need to reschedule or cancel, please contact us as soon as possible.</p>
+
+      <div class="footer">
+        <p>This is an automated reminder. Please do not reply to this email.</p>
+        <p>&copy; ${new Date().getFullYear()} GetSetTime. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+
+// Post-meeting follow-up email template
+const getFollowUpEmailTemplate = (data: BookingEmailData): string => {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #059669; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+    .content { background-color: #f9f9f9; padding: 30px; border: 1px solid #ddd; border-radius: 0 0 5px 5px; }
+    .booking-details { background-color: white; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #059669; }
+    .detail-row { margin: 10px 0; }
+    .label { font-weight: bold; color: #059669; }
+    .footer { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Thank You for Your Visit!</h1>
+    </div>
+    <div class="content">
+      <p>Dear ${data.inviteeName},</p>
+      <p>Thank you for attending your recent appointment. We hope everything went well!</p>
+
+      <div class="booking-details">
+        <h2 style="margin-top: 0; color: #059669;">Appointment Summary</h2>
+        <div class="detail-row">
+          <span class="label">Event:</span> ${data.eventTypeName}
+        </div>
+        <div class="detail-row">
+          <span class="label">Date:</span> ${formatDateTime(data.startTime, data.timezone)}
+        </div>
+        <div class="detail-row">
+          <span class="label">Duration:</span> ${data.duration} minutes
+        </div>
+      </div>
+
+      <p>If you have any questions or need a follow-up appointment, please don't hesitate to reach out.</p>
+      <p>We look forward to seeing you again!</p>
+
+      <div class="footer">
+        <p>This is an automated message. Please do not reply to this email.</p>
+        <p>&copy; ${new Date().getFullYear()} GetSetTime. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+
+export const sendReminderEmail = async (data: BookingEmailData): Promise<void> => {
+  const transporter = createTransporter();
+  await transporter.sendMail({
+    from: `"GetSetTime" <${process.env.SMTP_USER}>`,
+    to: data.inviteeEmail,
+    subject: `Reminder: ${data.eventTypeName} - Tomorrow`,
+    html: getReminderEmailTemplate(data),
+  });
+  console.log('Reminder email sent to:', data.inviteeEmail);
+};
+
+export const sendFollowUpEmail = async (data: BookingEmailData): Promise<void> => {
+  const transporter = createTransporter();
+  await transporter.sendMail({
+    from: `"GetSetTime" <${process.env.SMTP_USER}>`,
+    to: data.inviteeEmail,
+    subject: `Thank You - ${data.eventTypeName}`,
+    html: getFollowUpEmailTemplate(data),
+  });
+  console.log('Follow-up email sent to:', data.inviteeEmail);
+};
+
 // Send email confirmation link for registration (nodemailer)
 export const sendConfirmationEmail = async (
   to: string,

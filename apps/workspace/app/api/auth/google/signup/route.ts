@@ -67,7 +67,7 @@ export async function GET(req: Request) {
     if (!supabaseServiceKey) missing.push('SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY');
 
     if (missing.length > 0) {
-      const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || (typeof req.url === 'string' && req.url.startsWith('http') ? new URL(req.url).origin : null) || 'http://localhost:3001';
+      const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || (typeof req.url === 'string' && req.url.startsWith('http') ? new URL(req.url).origin : null) || '';
       const params = new URLSearchParams({ error: 'server_config', hint: missing.join(',') });
       return NextResponse.redirect(`${origin.replace(/\/$/, '')}/login?${params.toString()}`);
     }
@@ -164,7 +164,7 @@ export async function GET(req: Request) {
       }
 
       // Redirect to callback
-      const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || (typeof req.url === 'string' && req.url.startsWith('http') ? new URL(req.url).origin : 'http://localhost:3001');
+      const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || (typeof req.url === 'string' && req.url.startsWith('http') ? new URL(req.url).origin : '');
       const returnTo = req.url ? new URL(req.url).searchParams.get('returnTo') : null;
       const nextPath = returnTo && returnTo.startsWith('/') ? returnTo : '/';
       const res = NextResponse.redirect(`${origin.replace(/\/$/, '')}/auth/callback?next=${encodeURIComponent(nextPath)}&t=${callbackId}`);
@@ -275,7 +275,7 @@ export async function GET(req: Request) {
       }
 
       // Redirect to onboarding
-      const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || (typeof req.url === 'string' && req.url.startsWith('http') ? new URL(req.url).origin : 'http://localhost:3001');
+      const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || (typeof req.url === 'string' && req.url.startsWith('http') ? new URL(req.url).origin : '');
       const onboardingNext = encodeURIComponent('/register?onboarding=1');
       const res = NextResponse.redirect(`${origin.replace(/\/$/, '')}/auth/callback?next=${onboardingNext}&t=${callbackId}`);
       res.cookies.set('sb_callback_t', callbackId, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 60 });

@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Booking } from '@/src/types/booking';
-import type { Workspace } from '@app/db';
+import { type Workspace, BOOKING_STATUSES, BOOKING_SORT_OPTIONS } from '@app/db';
+import { BookingTableSkeleton } from '@/src/components/Booking/BookingTableSkeleton';
 
 interface BookingListProps {
   workspaces: Workspace[];
@@ -29,9 +30,8 @@ const BookingList = ({ workspaces }: BookingListProps) => {
   const [eventTypeFilter, setEventTypeFilter] = useState('');
   const [workspaceFilter, setWorkspaceFilter] = useState('');
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
+  const [sortFilter, setSortFilter] = useState('start_at');
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState<'date' | 'name' | 'workspace'>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
@@ -77,8 +77,7 @@ const BookingList = ({ workspaces }: BookingListProps) => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: itemsPerPage.toString(),
-        sortBy: sortBy,
-        sortOrder: sortOrder,
+        sort: sortFilter,
       });
 
       if (debouncedFilter) {
@@ -122,7 +121,7 @@ const BookingList = ({ workspaces }: BookingListProps) => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, sortBy, sortOrder, debouncedFilter, dateFilter, statusFilter, eventTypeFilter, workspaceFilter, itemsPerPage]);
+  }, [currentPage, sortFilter, debouncedFilter, dateFilter, statusFilter, eventTypeFilter, workspaceFilter, itemsPerPage]);
 
   // Fetch bookings when dependencies change
   useEffect(() => {
@@ -153,14 +152,14 @@ const BookingList = ({ workspaces }: BookingListProps) => {
   const displayBookings = bookings.map((booking) => ({
     id: booking.id,
     name: booking.invitee_name || 'N/A',
-    email: booking.invitee_email || 'N/A',
-    workspace: getWorkspaceName(booking.workspace_id),
-    workspaceId: booking.workspace_id,
-    date: formatDate(booking.start_at),
-    time: formatTime(booking.start_at),
-    startAt: booking.start_at,
+    dateTime: `${formatDate(booking.start_at)} - ${formatTime(booking.start_at)}`,
     type: booking.event_types?.title || 'N/A',
+    workspace: getWorkspaceName(booking.workspace_id),
     status: booking.status || 'Pending',
+    created_at: booking.created_at
+      ? `${formatDate(booking.created_at)} ${formatTime(booking.created_at)}`
+      : 'N/A',
+    is_viewed: booking.is_viewed ?? true,
   }));
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,25 +191,14 @@ const BookingList = ({ workspaces }: BookingListProps) => {
     setCurrentPage(1);
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    // Scroll to top smoothly when page changes
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleSort = (field: 'date' | 'name' | 'workspace') => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortOrder('desc');
-    }
+  const handleSortFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSortFilter(e.target.value);
     setCurrentPage(1);
   };
 
-  const getSortIcon = (field: 'date' | 'name' | 'workspace') => {
-    if (sortBy !== field) return null;
-    return sortOrder === 'asc' ? '↑' : '↓';
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -278,10 +266,10 @@ const BookingList = ({ workspaces }: BookingListProps) => {
           </div>
         </div>
 
-        {/* Second Row: Status, Event Type, and Workspace */}
+        {/* Second Row: Status, Event Type, Workspace, Sort */}
         <div className="flex flex-col md:flex-row gap-4">
           {/* Status Filter */}
-          <div className="w-full md:w-1/3">
+          <div className="w-full md:w-1/4">
             <label htmlFor="status-filter" className="block text-sm font-medium text-slate-700 mb-2">
               Filter by Status
             </label>
@@ -293,16 +281,16 @@ const BookingList = ({ workspaces }: BookingListProps) => {
               aria-label="Filter by status"
             >
               <option value="">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="completed">Completed</option>
-              <option value="reschedule">Reschedule</option>
+              {BOOKING_STATUSES.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
             </select>
           </div>
 
           {/* Event Type Filter */}
-          <div className="w-full md:w-1/3">
+          <div className="w-full md:w-1/4">
             <label htmlFor="event-type-filter" className="block text-sm font-medium text-slate-700 mb-2">
               Filter by Event Type
             </label>
@@ -323,7 +311,7 @@ const BookingList = ({ workspaces }: BookingListProps) => {
           </div>
 
           {/* Workspace Filter */}
-          <div className="w-full md:w-1/3">
+          <div className="w-full md:w-1/4">
             <label htmlFor="workspace-filter" className="block text-sm font-medium text-slate-700 mb-2">
               Filter by Workspace
             </label>
@@ -342,15 +330,32 @@ const BookingList = ({ workspaces }: BookingListProps) => {
               ))}
             </select>
           </div>
+
+          {/* Sort Filter */}
+          <div className="w-full md:w-1/4">
+            <label htmlFor="sort-filter" className="block text-sm font-medium text-slate-700 mb-2">
+              Sort by
+            </label>
+            <select
+              id="sort-filter"
+              value={sortFilter}
+              onChange={handleSortFilterChange}
+              className="w-full px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              aria-label="Sort bookings"
+            >
+              {BOOKING_SORT_OPTIONS.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
       <div className="overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-slate-500">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></div>
-            <p className="text-lg">Loading bookings...</p>
-          </div>
+          <BookingTableSkeleton />
         ) : bookings.length === 0 ? (
           <div className="p-8 text-center text-slate-500">
             <p className="text-lg mb-2">No bookings found</p>
@@ -363,37 +368,12 @@ const BookingList = ({ workspaces }: BookingListProps) => {
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr className="border border-slate-200">
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
-                    <button
-                      onClick={() => handleSort('date')}
-                      className="flex items-center gap-1 hover:text-slate-900 transition-colors"
-                      disabled={loading}
-                    >
-                      Date {getSortIcon('date')}
-                    </button>
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
-                    <button
-                      onClick={() => handleSort('name')}
-                      className="flex items-center gap-1 hover:text-slate-900 transition-colors"
-                      disabled={loading}
-                    >
-                      Name {getSortIcon('name')}
-                    </button>
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Email</th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
-                    <button
-                      onClick={() => handleSort('workspace')}
-                      className="flex items-center gap-1 hover:text-slate-900 transition-colors"
-                      disabled={loading}
-                    >
-                      Workspace {getSortIcon('workspace')}
-                    </button>
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Time</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Name</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Booked Date / Time</th>
                   <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Type</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Workspace</th>
                   <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">Created At</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -401,38 +381,44 @@ const BookingList = ({ workspaces }: BookingListProps) => {
                   const status = displayBooking.status?.toLowerCase();
                   return (
                     <tr key={displayBooking.id} className="bg-white border border-slate-200 hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Date">
-                        <span className="text-slate-700">{displayBooking.date}</span>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Name">
+                        <span className="font-medium text-slate-900">
+                          {displayBooking.name}
+                          {!displayBooking.is_viewed && (
+                            <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                              New
+                            </span>
+                          )}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Name">
-                        <span className="font-medium text-slate-900">{displayBooking.name}</span>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Date-Time">
+                        <span className="text-slate-700">{displayBooking.dateTime}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Email">
-                        <span className="text-sm text-slate-600">{displayBooking.email}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Workspace">
-                        <span className="text-sm text-slate-700">{displayBooking.workspace}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Time">
-                        <span className="text-slate-700">{displayBooking.time}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Type">
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Type">
                         <span className="text-sm text-slate-500">{displayBooking.type}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Status">
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Workspace">
+                        <span className="text-sm text-slate-700">{displayBooking.workspace}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Status">
                         <span
                           className={`inline-flex px-3 py-1 text-xs font-medium rounded-full ${
                             status === 'confirmed'
                               ? 'bg-emerald-100 text-emerald-700'
                               : status === 'pending'
                               ? 'bg-amber-100 text-amber-700'
-                              : status === 'reschedule'
-                              ? 'bg-rose-100 text-rose-700'
+                              : status === 'emergency'
+                              ? 'bg-orange-100 text-orange-700'
+                              : status === 'completed'
+                              ? 'bg-blue-100 text-blue-700'
                               : 'bg-rose-100 text-rose-700'
                           }`}
                         >
                           {displayBooking.status}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm" data-label="Created At">
+                        <span className="text-slate-600">{displayBooking.created_at}</span>
                       </td>
                     </tr>
                   );

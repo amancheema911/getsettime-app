@@ -235,7 +235,7 @@ export default function MyBookingsPage() {
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91 95306 93882"
+                  placeholder="+91 98765 43210"
                   className="mb-4 block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none"
                   required
                   autoFocus

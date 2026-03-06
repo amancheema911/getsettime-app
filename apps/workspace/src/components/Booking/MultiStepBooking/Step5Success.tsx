@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { EventType } from '@/src/types/bookingForm';
 import { BOOKING_STEP_TITLES, SUCCESS_CONFETTI_COLORS } from '@/src/constants/booking';
 import { getServiceIcon } from './serviceIcons';
@@ -9,13 +9,29 @@ interface Step5SuccessProps {
   selectedType: EventType | null;
   selectedDate: Date | null;
   selectedTime: string;
+  previewUrl?: string | null;
 }
 
 function fmtDay(d: Date) {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-export function Step5Success({ selectedType, selectedDate, selectedTime }: Step5SuccessProps) {
+export function Step5Success({ selectedType, selectedDate, selectedTime, previewUrl }: Step5SuccessProps) {
+  const [copied, setCopied] = useState(false);
+
+  const fullPreviewUrl = previewUrl
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}${previewUrl}`
+    : null;
+
+  const handleCopy = async () => {
+    if (!fullPreviewUrl) return;
+    try {
+      await navigator.clipboard.writeText(fullPreviewUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard unavailable */ }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center py-8 sm:py-12 lg:py-16 animate-fadeIn">
       <div className="relative mb-6 sm:mb-8">
@@ -72,6 +88,39 @@ export function Step5Success({ selectedType, selectedDate, selectedTime }: Step5
             </div>
           </div>
         </div>
+
+        {fullPreviewUrl && (
+          <div className="mt-6 sm:mt-8 max-w-md mx-auto w-full">
+            <p className="text-sm font-medium text-gray-600 mb-2">Share booking:</p>
+            <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2">
+              <a
+                href={fullPreviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 truncate text-sm text-purple-600 hover:text-purple-700 hover:underline"
+              >
+                {fullPreviewUrl}
+              </a>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="flex-shrink-0 rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Copy link"
+              >
+                {copied ? (
+                  <svg className="h-4 w-4 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="mt-8 flex items-center justify-center gap-2 text-gray-400">
           <div className="w-12 h-px bg-gradient-to-r from-transparent to-gray-300" />

@@ -41,6 +41,7 @@ const PATH_TO_MENU: Record<string, string> = {
   "/profile": "profile",
   "/settings": "settings",
   "/billings": "billings",
+  "/contacts": "contacts",
 };
 
 function pathnameToActiveMenu(pathname: string): string {

@@ -9,7 +9,6 @@ import { useIntakeValidation } from '@/src/hooks/useIntakeValidation';
 import {
   DEFAULT_ACCENT_COLOR,
   DEFAULT_PRIMARY_COLOR,
-  SUCCESS_REDIRECT_MS,
 } from '@/src/constants/booking';
 import { isServicesEnabled } from '@/src/utils/intakeForm';
 import { isTimeSlotBooked, normalizeDate } from '@/src/utils/bookingTime';
@@ -61,6 +60,7 @@ export default function EmbedBookingForm({ workspace, eventType, eventTypeSlug }
   const [touchedCustomFields, setTouchedCustomFields] = useState<Record<string, boolean>>({});
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [confirmed, setConfirmed] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -180,27 +180,6 @@ export default function EmbedBookingForm({ workspace, eventType, eventTypeSlug }
   }, [step]);
 
   useEffect(() => {
-    if (confirmed) {
-      const t = setTimeout(() => {
-        setStep(1);
-        setSelectedDepartment(null);
-        setSelectedProvider(null);
-        setSelectedType(null);
-        setSelectedDate(null);
-        setSelectedTime('');
-        setName('');
-        setEmail('');
-        setPhone('');
-        setNotes('');
-        setCustomFieldValues({});
-        setSelectedServiceIds([]);
-        setConfirmed(false);
-      }, SUCCESS_REDIRECT_MS);
-      return () => clearTimeout(t);
-    }
-  }, [confirmed]);
-
-  useEffect(() => {
     if (intakeForm && !isServicesEnabled(intakeForm)) {
       setSelectedServiceIds((prev) => prev.filter((id) => services.some((s) => s.id === id)));
     }
@@ -301,10 +280,11 @@ export default function EmbedBookingForm({ workspace, eventType, eventTypeSlug }
         }),
       });
 
+      const result = await res.json();
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to create booking');
+        throw new Error(result.error || 'Failed to create booking');
       }
+      if (result.preview_url) setPreviewUrl(result.preview_url);
       setConfirmed(true);
       setStep(5);
     } catch (err) {
@@ -462,6 +442,7 @@ export default function EmbedBookingForm({ workspace, eventType, eventTypeSlug }
                   selectedType={selectedType}
                   selectedDate={selectedDate}
                   selectedTime={selectedTime}
+                  previewUrl={previewUrl}
                 />
               )}
             </div>

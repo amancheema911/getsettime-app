@@ -344,7 +344,7 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
           </p>
         </div>
         <button
-          onClick={() => (showMultiStepForm ? handleFormCancel() : handleCreate())}
+          onClick={() => (showMultiStepForm ? handleMultiStepFormSave() : handleCreate())}
           className={`px-5 py-2.5 rounded-xl shadow transition whitespace-nowrap shrink-0 ${
             showMultiStepForm
               ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -358,14 +358,14 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
       {showMultiStepForm && (
         <div
           className="fixed inset-0 z-999 overflow-y-auto bg-gray-50 m-0 bg-opacity-50"
-          onClick={handleFormCancel}
+          onClick={handleMultiStepFormSave}
         >
           <div
             className="w-full mx-auto h-full relative"
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              onClick={handleFormCancel}
+              onClick={handleMultiStepFormSave}
               className="cursor-pointer fixed z-10 top-2 right-2 text-slate-500 hover:text-slate-700 rounded-full transition-colors"
               aria-label="Close modal"
             >

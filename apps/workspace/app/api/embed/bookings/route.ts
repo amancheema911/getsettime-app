@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@app/db';
 import { verifyOTP, isOTPVerified } from '@/lib/otp-service';
@@ -387,6 +388,8 @@ export async function POST(req: NextRequest) {
       invitee_phone?.trim() || null
     );
 
+    const publicCode = crypto.randomUUID();
+
     // Create booking with embed source
     const { data, error } = await supabase
       .from('bookings')
@@ -395,7 +398,7 @@ export async function POST(req: NextRequest) {
         event_type_id: event_type_id || null,
         service_provider_id: service_provider_id || null,
         department_id: department_id || null,
-        host_user_id: null, // Embed bookings don't have a host user
+        host_user_id: null,
         invitee_name: invitee_name.trim(),
         invitee_email: invitee_email?.trim() || null,
         invitee_phone: invitee_phone?.trim() || null,
@@ -406,6 +409,7 @@ export async function POST(req: NextRequest) {
         location: null,
         payment_id: null,
         metadata: metadataPayload,
+        public_code: publicCode,
       })
       .select()
       .single();
@@ -577,7 +581,10 @@ export async function POST(req: NextRequest) {
       console.warn('Google Calendar sync failed (non-blocking):', calErr);
     }
 
-    return NextResponse.json({ data });
+    return NextResponse.json({
+      data,
+      preview_url: `/booking-preview/${data.public_code}`,
+    });
   } catch (err: unknown) {
     const error = err as Error;
     console.error('Error:', error);

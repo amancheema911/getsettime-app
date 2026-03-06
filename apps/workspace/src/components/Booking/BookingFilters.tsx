@@ -131,7 +131,9 @@ export function BookingFilters({
               aria-label="Filter by event type"
             >
               <option value="">All Event Types</option>
-              {eventTypes.map((eventType) => (
+              {[...eventTypes]
+                .sort((a, b) => (a.duration_minutes ?? Infinity) - (b.duration_minutes ?? Infinity))
+                .map((eventType) => (
                 <option key={eventType.id} value={eventType.id}>
                   {eventType.title}
                 </option>

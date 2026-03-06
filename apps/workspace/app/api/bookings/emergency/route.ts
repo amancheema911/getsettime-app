@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { findOrCreateContact } from '@/lib/contact-linking';
@@ -63,6 +64,8 @@ export async function POST(req: NextRequest) {
       invitee_phone?.trim() || null
     );
 
+    const publicCode = crypto.randomUUID();
+
     const { data, error } = await supabase
       .from('bookings')
       .insert({
@@ -81,6 +84,7 @@ export async function POST(req: NextRequest) {
         location: null,
         payment_id: null,
         metadata,
+        public_code: publicCode,
       })
       .select()
       .single();
@@ -90,7 +94,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ data });
+    return NextResponse.json({
+      data,
+      preview_url: `/booking-preview/${data.public_code}`,
+    });
   } catch (err: unknown) {
     const error = err as Error;
     console.error('Error:', error);

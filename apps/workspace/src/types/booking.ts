@@ -25,6 +25,7 @@ export type Booking = {
   whatsapp_reminder_skipped_at: string | null;
   followup_email_sent_at: string | null;
   followup_email_skipped_at: string | null;
+  public_code: string | null;
   is_viewed: boolean;
   created_at: string;
   updated_at: string;

@@ -171,6 +171,9 @@ export function Step3DateTime({
               ))}
               {getCalendarDays(currentMonth).map((date, index) => {
                 const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
+                if (!isCurrentMonth) {
+                  return <div key={index} className="aspect-square" aria-hidden="true" />;
+                }
                 const isSelected = selectedDate?.toDateString() === date.toDateString();
                 const isTodayDate = isToday(date);
                 const isAvailable = checkDateAvailable(date);
@@ -180,7 +183,7 @@ export function Step3DateTime({
                   <button
                     key={index}
                     onClick={() => {
-                      if (!isDisabled && isCurrentMonth) {
+                      if (!isDisabled) {
                         const nd = normalizeDate(date);
                         onSelectDate(nd);
                         onSelectTime('');
@@ -203,15 +206,13 @@ export function Step3DateTime({
                         });
                       }
                     }}
-                    disabled={isDisabled || !isCurrentMonth}
+                    disabled={isDisabled}
                     className={`aspect-square p-1 sm:p-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
-                      !isCurrentMonth
-                        ? 'text-gray-300 cursor-not-allowed'
-                        : isDisabled
-                          ? 'bg-gray-50 border-2 border-gray-200 text-gray-300 cursor-not-allowed opacity-60'
-                          : isSelected
-                            ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg scale-110 ring-2 ring-purple-200'
-                            : 'text-gray-900 bg-white hover:bg-purple-50 hover:border-2 hover:border-purple-300 border-2 border-transparent'
+                      isDisabled
+                        ? 'bg-gray-50 border-2 border-gray-200 text-gray-300 cursor-not-allowed opacity-60'
+                        : isSelected
+                          ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg scale-110 ring-2 ring-purple-200'
+                          : 'text-gray-900 bg-white hover:bg-purple-50 hover:border-2 hover:border-purple-300 border-2 border-transparent'
                     } ${isTodayDate && !isSelected && !isDisabled ? 'ring-2 ring-purple-400' : ''}`}
                   >
                     <div className="flex flex-col items-center justify-center h-full">

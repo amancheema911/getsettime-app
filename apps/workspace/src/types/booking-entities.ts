@@ -1,6 +1,7 @@
 export type EventType = {
   id: string;
   title: string;
+  duration_minutes?: number | null;
 };
 
 export type Department = {

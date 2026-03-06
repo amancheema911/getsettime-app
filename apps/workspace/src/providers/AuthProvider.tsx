@@ -19,13 +19,17 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext)
 
 // Public routes that don't require authentication
-const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/login", "/auth/register", "/auth/forgot-password", "/auth/callback", "/invite-accept"];
+const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/login", "/auth/register", "/auth/forgot-password", "/auth/callback", "/invite-accept", "/my-bookings"];
 
 // Reserved first path segments (app routes) - embed booking uses /[workspaceSlug] or /[workspaceSlug]/[eventTypeSlug]
-const RESERVED_FIRST_SEGMENTS = ['login', 'register', 'forgot-password', 'reset-password', 'auth', 'invite-accept', 'event-type', 'routingform', 'workflows', 'availability', 'team-members', 'departments', 'services', 'profile', 'integrations', 'contacts', 'billings', 'bookings', 'settings', 'api', '_next'];
+const RESERVED_FIRST_SEGMENTS = ['login', 'register', 'forgot-password', 'reset-password', 'auth', 'invite-accept', 'event-type', 'routingform', 'workflows', 'availability', 'team-members', 'departments', 'services', 'profile', 'integrations', 'contacts', 'billings', 'bookings', 'settings', 'booking-preview', 'api', '_next'];
 function isPublicRoutePattern(pathname: string): boolean {
   const segments = pathname.split('/').filter(Boolean);
   return (segments.length === 1 || segments.length === 2) && !RESERVED_FIRST_SEGMENTS.includes(segments[0]);
+}
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_ROUTES.includes(pathname) || isPublicRoutePattern(pathname) || pathname.startsWith('/booking-preview/');
 }
 
 // Allowed roles for workspace app
@@ -44,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error(error)
         setLoading(false)
-        if (!PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
+        if (!isPublicPath(pathname)) {
           router.push('/login')
         }
         return
@@ -64,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await supabase.auth.signOut()
           setUser(null)
           setLoading(false)
-          if (!PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
+          if (!isPublicPath(pathname)) {
             router.push('/login')
           }
           return
@@ -77,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await supabase.auth.signOut()
           setUser(null)
           setLoading(false)
-          if (!PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
+          if (!isPublicPath(pathname)) {
             router.push('/login')
           }
           return
@@ -88,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       
       // Only redirect to login if not on a public route
-      if (!session && !PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
+      if (!session && !isPublicPath(pathname)) {
         router.push('/login')
       }
     }
@@ -111,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isDeactivated) {
           await supabase.auth.signOut()
           setUser(null)
-          if (!PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
+          if (!isPublicPath(pathname)) {
             router.push('/login')
           }
           return
@@ -123,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Sign out user with wrong role
           await supabase.auth.signOut()
           setUser(null)
-          if (!PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
+          if (!isPublicPath(pathname)) {
             router.push('/login')
           }
           return
@@ -133,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(currentUser)
       
       // Only redirect to login if not on a public route
-      if (!session && !PUBLIC_ROUTES.includes(pathname) && !isPublicRoutePattern(pathname)) {
+      if (!session && !isPublicPath(pathname)) {
         router.push('/login')
       }
       

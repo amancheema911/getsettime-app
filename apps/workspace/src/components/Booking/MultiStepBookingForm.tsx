@@ -6,7 +6,7 @@ import { useBookingFormData } from '../../hooks/useBookingFormData';
 import { useTimeslots } from '../../hooks/useTimeslots';
 import { useIntakeValidation } from '../../hooks/useIntakeValidation';
 import type { Department, EventType, IntakeValues, ServiceProvider } from '../../types/bookingForm';
-import { DEFAULT_ACCENT_COLOR, DEFAULT_PRIMARY_COLOR, SUCCESS_REDIRECT_MS } from '../../constants/booking';
+import { DEFAULT_ACCENT_COLOR, DEFAULT_PRIMARY_COLOR } from '../../constants/booking';
 import { sortEventTypesByDuration } from '../../utils/bookingFormUtils';
 import { isServicesEnabled } from '../../utils/intakeForm';
 import { isTimeSlotBooked, normalizeDate } from '../../utils/bookingTime';
@@ -51,6 +51,7 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [confirmed, setConfirmed] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -151,26 +152,6 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
       setTouchedCustomFields({});
     }
   }, [step]);
-
-  useEffect(() => {
-    if (confirmed) {
-      const t = setTimeout(() => {
-        setStep(1);
-        setSelectedDepartment(null);
-        setSelectedProvider(null);
-        setSelectedType(null);
-        setSelectedDate(null);
-        setSelectedTime('');
-        setName('');
-        setEmail('');
-        setPhone('');
-        setNotes('');
-        setConfirmed(false);
-        onSave();
-      }, SUCCESS_REDIRECT_MS);
-      return () => clearTimeout(t);
-    }
-  }, [confirmed, onSave]);
 
   useEffect(() => {
     if (!loadingSettings && general) {
@@ -291,10 +272,11 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
         }),
       });
 
+      const result = await res.json();
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to create booking');
+        throw new Error(result.error || 'Failed to create booking');
       }
+      if (result.preview_url) setPreviewUrl(result.preview_url);
       setConfirmed(true);
       setStep(5);
     } catch (err) {
@@ -444,6 +426,7 @@ const MultiStepBookingForm = ({ onSave, onCancel }: MultiStepBookingFormProps) =
                   selectedType={selectedType}
                   selectedDate={selectedDate}
                   selectedTime={selectedTime}
+                  previewUrl={previewUrl}
                 />
               )}
             </div>

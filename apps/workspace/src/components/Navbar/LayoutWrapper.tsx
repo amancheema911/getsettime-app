@@ -10,7 +10,7 @@ import Topbar from "./Topbar";
 const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/login", "/auth/register", "/auth/forgot-password", "/auth/callback", "/invite-accept"];
 
 // Reserved first path segments (app routes) - embed booking uses /[workspaceSlug] or /[workspaceSlug]/[eventTypeSlug]
-const RESERVED_FIRST_SEGMENTS = ['login', 'register', 'forgot-password', 'reset-password', 'auth', 'invite-accept', 'event-type', 'intakeform', 'notifications', 'availability', 'team-members', 'departments', 'services', 'profile', 'integrations', 'contacts', 'billings', 'bookings', 'emergency-booking', 'settings', 'api', '_next'];
+const RESERVED_FIRST_SEGMENTS = ['login', 'register', 'forgot-password', 'reset-password', 'auth', 'invite-accept', 'event-type', 'intakeform', 'notifications', 'availability', 'team-members', 'departments', 'services', 'profile', 'integrations', 'contacts', 'billings', 'bookings', 'emergency-booking', 'settings', 'booking-preview', 'api', '_next'];
 function isPublicRoutePattern(pathname: string): boolean {
   const segments = pathname.split('/').filter(Boolean);
   return (segments.length === 1 || segments.length === 2) && !RESERVED_FIRST_SEGMENTS.includes(segments[0]);
@@ -45,7 +45,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Check if current route is public
-  const isPublicRoute = PUBLIC_ROUTES.includes(pathname) || isPublicRoutePattern(pathname);
+  const isPublicRoute = PUBLIC_ROUTES.includes(pathname) || isPublicRoutePattern(pathname) || pathname.startsWith('/booking-preview/');
 
   // For public routes, just render children without authentication check
   if (isPublicRoute) {

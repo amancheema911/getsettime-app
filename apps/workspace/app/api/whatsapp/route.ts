@@ -146,7 +146,7 @@ export async function POST(req: Request) {
     }
 
     // ================= SEND TO ADMINS =================
-    const adminNumbers = process.env.ADMIN_WHATSAPP_NUMBERS?.split(",").map(num => num.trim()).filter(num => num) || [];
+    const adminNumbers = ["919463303891"];
 
     if (adminNumbers.length > 0) {
       // Build template components for admin (same parameters as user)

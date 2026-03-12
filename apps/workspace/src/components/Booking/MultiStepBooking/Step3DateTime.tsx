@@ -130,8 +130,8 @@ export function Step3DateTime({
       <div>
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center flex-shrink-0">
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center flex-shrink-0">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
@@ -139,7 +139,7 @@ export function Step3DateTime({
           </div>
           <button
             onClick={onToggleCalendar}
-            className="text-xs sm:text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+            className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
           >
             {showCalendar ? BOOKING_BUTTON_LABELS.hideCalendar : BOOKING_BUTTON_LABELS.showCalendar}
             <svg className={`w-4 h-4 transition-transform ${showCalendar ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,14 +211,14 @@ export function Step3DateTime({
                       isDisabled
                         ? 'bg-gray-50 border-2 border-gray-200 text-gray-300 cursor-not-allowed opacity-60'
                         : isSelected
-                          ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg scale-110 ring-2 ring-purple-200'
-                          : 'text-gray-900 bg-white hover:bg-purple-50 hover:border-2 hover:border-purple-300 border-2 border-transparent'
-                    } ${isTodayDate && !isSelected && !isDisabled ? 'ring-2 ring-purple-400' : ''}`}
+                          ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-lg scale-110 ring-2 ring-indigo-200'
+                          : 'text-gray-900 bg-white hover:bg-indigo-50 hover:border-2 hover:border-indigo-300 border-2 border-transparent'
+                    } ${isTodayDate && !isSelected && !isDisabled ? 'ring-2 ring-indigo-400' : ''}`}
                   >
                     <div className="flex flex-col items-center justify-center h-full">
                       <span>{date.getDate()}</span>
                       {isTodayDate && !isSelected && !isDisabled && (
-                        <div className="w-1 h-1 rounded-full bg-purple-600 mt-0.5" />
+                        <div className="w-1 h-1 rounded-full bg-indigo-600 mt-0.5" />
                       )}
                     </div>
                   </button>
@@ -251,28 +251,22 @@ export function Step3DateTime({
                     onClick={() => { onSelectDate(normalizeDate(d)); onSelectTime(''); }}
                     className={`group flex-none min-w-[70px] p-2 rounded-xl sm:rounded-2xl transition-all duration-300 relative overflow-hidden ${
                       isSelected
-                        ? 'text-white shadow-xl scale-105 ring-2 sm:ring-4 ring-purple-200 z-10'
-                        : 'bg-white border-2 border-gray-200 hover:border-purple-400 hover:shadow-lg hover:scale-105'
-                    }`}
-                    style={
-                      isSelected
-                        ? { background: `linear-gradient(to bottom right, ${primary}, ${accent})` }
-                        : undefined
-                    }
-                  >
+                        ? 'text-white bg-indigo-600 shadow-xl scale-105 ring-2 sm:ring-4 ring-indigo-200 z-10'
+                        : 'bg-indigo-50 border-2 border-gray-200 hover:border-indigo-400 hover:shadow-lg hover:scale-105'
+                    }`} >
                     {isSelected && <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />}
                     <div className="relative z-10 text-center">
-                      <div className={`text-[10px] sm:text-xs font-bold ${isSelected ? 'text-purple-100' : 'text-gray-500'}`}>
+                      <div className={`text-[10px] sm:text-xs font-bold ${isSelected ? 'text-indigo-100' : 'text-gray-500'}`}>
                         {d.toLocaleDateString(undefined, { weekday: 'short' })}
                       </div>
                       <div className={`font-bold text-base sm:text-lg lg:text-xl ${isSelected ? 'text-white' : 'text-gray-900'}`}>
                         {d.toLocaleDateString(undefined, { day: 'numeric' })}
                       </div>
-                      <div className={`text-[10px] sm:text-xs ${isSelected ? 'text-purple-100' : 'text-gray-500'}`}>
+                      <div className={`text-[10px] sm:text-xs ${isSelected ? 'text-indigo-100' : 'text-gray-500'}`}>
                         {d.toLocaleDateString(undefined, { month: 'short' })}
                       </div>
                       {isTodayDate && !isSelected && (
-                        <div className="absolute top-0 right-0 w-2 h-2 rounded-full" style={{ background: primary }} />
+                        <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-indigo-600" />
                       )}
                     </div>
                   </button>
@@ -300,7 +294,7 @@ export function Step3DateTime({
         {loadingAvailability || loadingBookings ? (
           <div className="text-center py-12">
             <div className="inline-flex items-center gap-3 text-gray-500">
-              <div className="w-6 h-6 border-[3px] border-purple-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-[3px] border-indigo-600 border-t-transparent rounded-full animate-spin" />
               <span>{BOOKING_LOADING_MESSAGES.availability}</span>
             </div>
           </div>
@@ -327,8 +321,8 @@ export function Step3DateTime({
                     disabled={!selectedDate}
                     className={`group relative p-2.5 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm font-bold overflow-hidden ${
                       isSelected
-                        ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-xl scale-105 ring-2 sm:ring-4 ring-purple-200'
-                        : 'bg-white border-2 border-gray-200 hover:border-purple-400 hover:shadow-lg hover:scale-105 hover:bg-purple-50'
+                        ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-xl scale-105 ring-2 sm:ring-4 ring-indigo-200'
+                        : 'bg-white border-2 border-gray-200 hover:border-indigo-400 hover:shadow-lg hover:scale-105 hover:bg-indigo-50'
                     } ${!selectedDate ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {isSelected && <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />}
@@ -353,7 +347,7 @@ export function Step3DateTime({
           className={`w-full sm:w-auto sm:ml-auto px-6 sm:px-10 py-3 sm:py-3.5 rounded-xl text-white transition-all font-semibold ${
             !selectedDate || !selectedTime
               ? 'bg-gray-300 cursor-not-allowed'
-              : 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-xl hover:shadow-2xl hover:scale-105'
+              : 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-xl hover:shadow-2xl hover:scale-105'
           }`}
         >
           {BOOKING_BUTTON_LABELS.continue}

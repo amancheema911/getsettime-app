@@ -345,12 +345,7 @@ const BookingList = ({ bookings: initialBookings }: BookingListProps) => {
         </div>
         <button
           onClick={() => (showMultiStepForm ? handleMultiStepFormSave() : handleCreate())}
-          className={`px-5 py-2.5 rounded-xl shadow transition whitespace-nowrap shrink-0 ${
-            showMultiStepForm
-              ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'
-          }`}
-        >
+          className={`cursor-pointer text-sm font-bold text-indigo-600 transition`}>
           {showMultiStepForm ? 'Cancel' : '+ New Booking'}
         </button>
       </header>

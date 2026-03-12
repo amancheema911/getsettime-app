@@ -136,7 +136,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 />
               )}
               {accountName && accountName !== "GetSetTime" && (
-                <span className="text-sm font-semibold text-gray-700 truncate max-w-[100px]">
+                <span className="text-xs sm:text-sm font-semibold text-gray-700 truncate max-w-[100px]">
                   {accountName}
                 </span>
               )}

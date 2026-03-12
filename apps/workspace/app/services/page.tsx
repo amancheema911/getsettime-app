@@ -188,8 +188,8 @@ export default function ServicesPage() {
         ) : (
           <div className="space-y-3">
             {services.map((service) => (
-              <div key={service.id} className="flex items-start gap-4 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-sm transition">
-                <div className="flex-1 min-w-0">
+              <div key={service.id} className="flex flex-wrap items-start justify-between gap-4 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-sm transition">
+                <div className="flex-grow">
                   <div className="flex items-center gap-2">
                     <h4 className="text-base font-medium text-slate-800 truncate">{service.name}</h4>
                     {service.price && (

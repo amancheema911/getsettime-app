@@ -267,8 +267,8 @@ export default function DepartmentsPage() {
             {departments.map((department) => {
               const departmentServices = department.meta_data?.services || [];
               return (
-                <div key={department.id} className="flex items-start gap-4 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-sm transition">
-                  <div className="flex-1 min-w-0">
+                <div key={department.id} className="flex flex-wrap items-start justify-between gap-4 p-4 rounded-xl border border-slate-200 bg-white hover:shadow-sm transition">
+                  <div className="flex-grow">
                     <div className="flex items-center gap-2">
                       <h4 className="text-base font-medium text-slate-800 truncate">{department.name}</h4>
                     </div>

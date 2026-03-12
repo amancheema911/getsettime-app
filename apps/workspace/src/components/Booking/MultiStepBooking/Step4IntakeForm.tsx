@@ -72,7 +72,7 @@ export function Step4IntakeForm({
   const [attemptedConfirm, setAttemptedConfirm] = useState(false);
   const showFieldError = (key: string) => attemptedConfirm && Boolean(intakeValidation[key]);
   const baseInputClass =
-    'w-full px-4 py-4 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-purple-500 transition-all bg-white hover:border-gray-300';
+    'w-full px-4 py-4 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-indigo-500 transition-all bg-white hover:border-gray-300';
 
   return (
     <div className="space-y-4 sm:space-y-6 lg:space-y-8 animate-fadeIn">
@@ -90,7 +90,7 @@ export function Step4IntakeForm({
         {intakeForm?.name !== false && (
           <div className="group">
             <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
@@ -113,7 +113,7 @@ export function Step4IntakeForm({
         {intakeForm?.email !== false && (
           <div className="group">
             <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
@@ -137,7 +137,7 @@ export function Step4IntakeForm({
         {intakeForm?.phone === true && (
           <div className="group">
             <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
@@ -177,7 +177,7 @@ export function Step4IntakeForm({
                       type="button"
                       onClick={() => onServiceToggle(s.id)}
                       className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 transition-all text-sm font-semibold ${
-                        selected ? 'bg-purple-600 text-white border-purple-600 shadow-lg' : 'bg-white text-gray-700 border-gray-200 hover:border-purple-400 hover:bg-purple-50'
+                        selected ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-gray-700 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50'
                       } ${showFieldError('services') ? 'border-red-300' : ''}`}
                     >
                       <span className="truncate max-w-[220px]">{s.name}</span>
@@ -269,7 +269,7 @@ export function Step4IntakeForm({
         {intakeForm?.additional_description === true && (
           <div className="group">
             <div className="relative">
-              <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-purple-600 transition-colors">
+              <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-indigo-600 transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
@@ -278,7 +278,7 @@ export function Step4IntakeForm({
                 value={notes}
                 onChange={(e) => onNotesChange(e.target.value)}
                 placeholder={BOOKING_PLACEHOLDERS.notes}
-                className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-gray-200 h-36 resize-none focus:outline-none focus:border-purple-500 transition-all bg-white hover:border-gray-300"
+                className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-gray-200 h-36 resize-none focus:outline-none focus:border-indigo-500 transition-all bg-white hover:border-gray-300"
               />
             </div>
           </div>
@@ -303,7 +303,7 @@ export function Step4IntakeForm({
           }}
           disabled={loading}
           className={`w-full sm:w-auto sm:ml-auto px-6 sm:px-10 py-3 sm:py-3.5 rounded-xl text-white transition-all font-semibold flex items-center justify-center gap-2 ${
-            loading ? 'bg-gray-300 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-xl hover:shadow-2xl hover:scale-105'
+            loading ? 'bg-gray-300 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-xl hover:shadow-2xl hover:scale-105'
           }`}
         >
           {loading ? (

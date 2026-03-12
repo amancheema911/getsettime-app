@@ -613,7 +613,7 @@ export default function RoutingForm({ dark = false }) {
                   </div>
 
                   {/* Additional Description Field Toggle */}
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white">
+                  <div className="flex flex-wrap gap-3 items-center justify-between p-3 rounded-lg border border-slate-200 bg-white">
                     <div>
                       <label className="text-sm font-medium text-slate-700">Additional Description</label>
                       <p className="text-xs text-slate-500">Collect additional notes from invitees</p>
@@ -631,7 +631,7 @@ export default function RoutingForm({ dark = false }) {
 
                   {/* Custom Fields Section */}
                   <div className="p-3 rounded-lg border border-slate-200 bg-white">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex flex-wrap gap-3 items-center justify-between mb-3">
                       <div>
                         <label className="text-sm font-medium text-slate-700">Custom Fields</label>
                         <p className="text-xs text-slate-500">Add custom fields to collect additional information</p>
@@ -726,7 +726,7 @@ export default function RoutingForm({ dark = false }) {
       {showCustomFieldForm && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-200 ${showCustomFieldForm ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}>
           <div className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${showCustomFieldForm ? 'opacity-100' : 'opacity-0'}`} aria-hidden="true" onClick={handleCustomFieldFormCancel}/>
-          <section className={`relative w-full max-w-md transform bg-white rounded-2xl shadow-2xl transition-all duration-300 ${showCustomFieldForm ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+          <section className={`relative max-w-7xl mx-auto transform bg-white rounded-2xl shadow-2xl transition-all duration-300 ${showCustomFieldForm ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
             <div className={`flex items-center justify-between border-b border-gray-200 px-6 py-4`}>
               <div>
                 <h2 className={`text-lg font-semibold text-gray-800`}>{editingCustomField ? "Edit Custom Field" : "Add Custom Field"}</h2>

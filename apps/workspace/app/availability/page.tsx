@@ -681,7 +681,7 @@ export default function Availability() {
           )}
 
           {activeTab === 'availability' && (
-            <div className="bg-white p-6 shadow-md space-y-4 sm:space-y-8">
+            <div className="bg-white p-4 shadow-md space-y-4 sm:space-y-8">
               {/* Header */}
               <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-3 sm:gap-2">
                 {/* Filters */}
@@ -784,7 +784,7 @@ export default function Availability() {
                   <div className="flex items-center gap-2 sm:gap-3 justify-between">
                     <button className={`${outlineBtn} text-xs sm:text-sm px-3 sm:px-4 py-2.5 sm:py-2 touch-manipulation ${isPrevDisabled() ? "opacity-50 cursor-not-allowed" : ""}`} disabled={isPrevDisabled()} onClick={() => { if (!isPrevDisabled()) { setCurrentDate((date) => (viewMode === "week" ? subDays(date, 7) : subDays(date, 1))); setHasSelectedDate(true);} }}>Prev</button>
 
-                    <div className="text-md sm:text-md text-center font-semibold px-2">
+                    <div className="text-sm sm:text-md text-center font-semibold px-2">
                       {viewMode === "week" ? `${format(startWeek, "dd MMM")} – ${format( endOfWeek(currentDate, { weekStartsOn: 1 }), "dd MMM yyyy")}` : format(currentDate, "EEE, dd MMM yyyy")}
                     </div>
 
@@ -797,7 +797,7 @@ export default function Availability() {
                     {viewMode === "week" && (
                       <>
                         {/* Desktop Grid View */}
-                        <div className="hidden lg:block overflow-x-auto">
+                        <div className="hidden xl:block overflow-x-auto">
                           {/* Hours Header */}
                           <div className="grid grid-cols-[100px_repeat(12,minmax(80px,1fr))]">
                             <div></div>
@@ -870,7 +870,7 @@ export default function Availability() {
                         </div>
 
                         {/* Mobile Vertical Card View */}
-                        <div className="lg:hidden space-y-3 p-3">
+                        <div className="xl:hidden space-y-3 p-3">
                           {weekDays.map((day) => { const dayName = format(day, "EEE") as DayName;
                             return (
                               <div key={dayName} className="border border-gray-200 rounded-lg p-3 bg-white">
@@ -889,7 +889,7 @@ export default function Availability() {
                                 </div>
 
                                 {/* Time Slots Grid */}
-                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                                   {hours.map((h) => {
                                     const active = isTimeSlotActive(dayName, h, day);
                                     const isPast = isPastTimeSlot(day, h);
@@ -930,7 +930,7 @@ export default function Availability() {
                       return (
                         <>
                           {/* Desktop Day View */}
-                          <div className="hidden md:block">
+                          <div className="hidden xl:block">
                             <div className="grid grid-cols-[100px_repeat(12,minmax(0,1fr))]">
                               <div className="px-3 py-3 border-t border-gray-200 bg-gray-50">
                                 <span className="text-xs font-medium">{format(currentDate, "EEE")}</span>
@@ -979,7 +979,7 @@ export default function Availability() {
                           </div>
 
                           {/* Mobile Day View */}
-                          <div className="md:hidden p-4">
+                          <div className="xl:hidden p-4">
                             <div className="mb-4 flex items-center justify-between">
                               <div>
                                 <p className="text-base font-semibold">{format(currentDate, "EEE")}</p>

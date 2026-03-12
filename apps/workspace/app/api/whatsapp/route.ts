@@ -84,8 +84,8 @@ export async function POST(req: Request) {
     let adminWhatsappResults: any[] = [];
 
     // Template configuration
-    const userTemplateName = process.env.USER_WHATSAPP_TEMPLATE || "contact_information";
-    const adminTemplateName = process.env.ADMIN_WHATSAPP_TEMPLATE || "contact_information";
+    const userTemplateName = process.env.USER_WHATSAPP_TEMPLATE || "booking_information";
+    const adminTemplateName = process.env.ADMIN_WHATSAPP_TEMPLATE || "booking_received";
     // WhatsApp language codes: Use "en" (not "en_US") as per your example
     const languageCode = process.env.WHATSAPP_TEMPLATE_LANGUAGE || "en";
 

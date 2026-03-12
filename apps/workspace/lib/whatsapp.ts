@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 
-const WHATSAPP_API_URL = process.env.WHATSAPP_API_URL || "https://graph.facebook.com/v18.0";
+const WHATSAPP_API_URL = process.env.WHATSAPP_API_URL || "https://graph.facebook.com/v22.0";
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID!;
 const APP_ID = process.env.WHATSAPP_APP_ID!;
 const APP_SECRET = process.env.WHATSAPP_APP_SECRET!;
@@ -185,7 +185,7 @@ export async function sendWhatsAppMessage(
 export async function sendWhatsAppTemplate(
   to: string,
   templateName: string,
-  languageCode: string = "en_US",
+  languageCode: string = "en",
   components?: Array<{
     type: "header" | "body" | "button";
     parameters?: Array<{

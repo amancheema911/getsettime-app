@@ -672,7 +672,7 @@ export default function AvailabilityTimesheet({ onSave, initialTimesheet }: Avai
   return (
     <div className="rounded-xl">
       {/* Header Bar */}
-      <div className="bg-[radial-gradient(circle_at_18%_0%,rgba(99,102,241,0.14),transparent_42%),radial-gradient(circle_at_92%_16%,rgba(16,185,129,0.10),transparent_45%)] relative overflow-hidden rounded-xl p-6 mb-6 shadow-sm border border-slate-200">
+      <div className="bg-[radial-gradient(circle_at_18%_0%,rgba(99,102,241,0.14),transparent_42%),radial-gradient(circle_at_92%_16%,rgba(16,185,129,0.10),transparent_45%)] relative overflow-hidden rounded-xl p-4 mb-6 shadow-sm border border-slate-200">
       
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           {/* Left Side - Info Tags and Description */}
@@ -696,7 +696,7 @@ export default function AvailabilityTimesheet({ onSave, initialTimesheet }: Avai
           </div>
 
           {/* Right Side - Action Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap gap-3 items-center gap-3">
             <button
               type="button"
               onClick={enableAllDays}
@@ -732,19 +732,19 @@ export default function AvailabilityTimesheet({ onSave, initialTimesheet }: Avai
           const dayFullName = DAY_NAMES[day];
           
           return (
-            <div key={day} className="bg-white rounded-xl p-6 overflow-hidden shadow-sm relative">
+            <div key={day} className="bg-white rounded-xl p-4 overflow-hidden shadow-sm relative">
               <div className="absolute z-0 inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(99,102,241,0.16),transparent_42%),radial-gradient(circle_at_95%_10%,rgba(16,185,129,0.10),transparent_45%)]"></div>
 
               {/* Header Section */}
-              <div className="flex items-start justify-between z-10 relative">
+              <div className="flex flex-col gap-4 justify-between z-10 relative">
                 <div className="flex items-center gap-4">
                   {/* Day Icon */}
                   <div className="relative">
-                    <div className="w-16 h-16 rounded-xl bg-indigo-600 flex items-center justify-center">
-                      <span className="text-white text-2xl font-bold">{dayLetter}</span>
+                    <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center">
+                      <span className="text-white text-xl font-bold">{dayLetter}</span>
                     </div>
                     {schedule.enabled && (
-                      <div className="absolute top-1 -right-1 w-4 h-4 rounded-full bg-teal-400"></div>
+                      <div className="absolute top-0 -right-1 w-3 h-3 rounded-full bg-emerald-500"></div>
                     )}
                   </div>
                   
@@ -763,7 +763,8 @@ export default function AvailabilityTimesheet({ onSave, initialTimesheet }: Avai
                 </div>
 
                 {/* Available Button */}
-                <div className="flex items-center flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                <button type="button" onClick={() => copyToAllDays(day)} className="text-xs font-extrabold text-indigo-700 hover:text-indigo-800">Copy to all</button>
                   <button
                     type="button"
                     onClick={() => updateDaySchedule(day, { enabled: !schedule.enabled })}
@@ -774,8 +775,6 @@ export default function AvailabilityTimesheet({ onSave, initialTimesheet }: Avai
                     </span>
                     <span className={`text-xs font-extrabold ${ schedule.enabled ? 'text-emerald-700' : 'text-slate-600' }`}>{schedule.enabled ? 'Available' : 'Off'}</span>
                   </button>
-
-                  <button type="button" onClick={() => copyToAllDays(day)} className="text-xs font-extrabold text-indigo-700 hover:text-indigo-800">Copy to all</button>
                 </div>
               </div>
 
@@ -790,7 +789,7 @@ export default function AvailabilityTimesheet({ onSave, initialTimesheet }: Avai
                 </div>
 
                 {/* Controls - Right Side */}
-                <div className="space-y-4 p-3">
+                <div className="space-y-4">
                   {/* Time Settings */}
                   <div className="rounded-lg grid grid-cols-2 gap-4">
                     <div>
@@ -944,7 +943,7 @@ export default function AvailabilityTimesheet({ onSave, initialTimesheet }: Avai
                     )}
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between">
+                  <div className="mt-4 flex flex-wrap gap-4 items-center justify-between">
                     <div className={`text-xs ${!schedule.enabled ? 'text-slate-400' : 'text-zinc-500'}`}>Tip: Configure one day then "Copy to all".</div>
                     <button 
                       type="button" 

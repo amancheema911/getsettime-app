@@ -207,13 +207,10 @@ function IntegrationsContent() {
             <div key={it.id} className={`p-5 rounded-2xl border border-slate-100 bg-white shadow-md hover:shadow-lg transition-transform hover:-translate-y-1`}>
               <div className={`font-medium text-slate-800`}>{it.name}</div>
               <div className={`text-sm mt-1 text-slate-500`}>{it.desc}</div>
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-4 flex flex-wrap gap-3 items-center justify-between">
                 <span className={`text-xs font-medium ${ it.connected ? "text-emerald-600" : "text-slate-400" }`}>
                   {it.connected
-                    ? (it.id === 'google_calendar' && integrations.google_calendar_email
-                      ? `Connected (${integrations.google_calendar_email})`
-                      : "Connected")
-                    : "Not connected"}
+                    ? (it.id === 'google_calendar' && integrations.google_calendar_email ? `Connected (${integrations.google_calendar_email})` : "Connected") : "Not connected"}
                 </span>
                 <button 
                   onClick={() => it.connected ? handleDisconnectClick(it.id as 'google_calendar' | 'zoom') : handleConnect(it.connectType)}

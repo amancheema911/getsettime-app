@@ -177,8 +177,12 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern opacity-5"></div>
+    <div className="min-h-screen bg-neutral-50 relative flex items-center justify-center">
+      {/* <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern opacity-5"></div> */}
+      <div className="absolute inset-0">
+        <div className="absolute bottom-0 right-0 w-100 h-100 bg-emerald-300/20 rounded-full blur-3xl animate-pulse [animation-delay:2s]"></div>
+        <div className="absolute top-0 left-0 w-100 h-100 bg-indigo-400/30 rounded-full blur-3xl animate-pulse [animation-delay:4s]"></div>
+      </div>
 
       <div className="w-full max-w-md px-6 relative z-10">
         {/* Logo */}

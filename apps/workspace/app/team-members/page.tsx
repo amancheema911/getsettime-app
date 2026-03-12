@@ -423,14 +423,14 @@ export default function TeamMembersPage() {
               return (
                 <div
                   key={member.id}
-                  className={`flex items-start gap-4 p-4 rounded-xl border ${
+                  className={`flex flex-wrap items-start justify-between gap-4 p-4 rounded-xl border ${
                     member.deactivated
                       ? 'border-slate-200 bg-slate-50 opacity-60'
                       : 'border-slate-200 bg-white hover:shadow-sm'
                   } transition`}
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                  <div className="flex-grow">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <div className="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-medium">
                         {member.name.charAt(0).toUpperCase()}
                       </div>

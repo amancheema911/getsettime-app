@@ -39,7 +39,7 @@ export function Step1DepartmentProvider({
         {loadingDepartments ? (
           <div className="text-center py-8">
             <div className="inline-flex items-center gap-3 text-gray-500">
-              <div className="w-5 h-5 border-[3px] border-purple-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-[3px] border-indigo-600 border-t-transparent rounded-full animate-spin" />
               <span>{BOOKING_LOADING_MESSAGES.departments}</span>
             </div>
           </div>
@@ -90,7 +90,7 @@ export function Step1DepartmentProvider({
           {loadingProviders ? (
             <div className="text-center py-8">
               <div className="inline-flex items-center gap-3 text-gray-500">
-                <div className="w-5 h-5 border-[3px] border-purple-600 border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-[3px] border-indigo-600 border-t-transparent rounded-full animate-spin" />
                 <span>{BOOKING_LOADING_MESSAGES.providers}</span>
               </div>
             </div>
@@ -137,7 +137,7 @@ export function Step1DepartmentProvider({
         <div className="flex justify-end pt-4">
           <button
             onClick={onContinue}
-            className="px-6 sm:px-10 py-3 sm:py-3.5 rounded-xl text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-xl hover:shadow-2xl hover:scale-105 transition-all font-semibold"
+            className="px-6 sm:px-10 py-3 sm:py-3.5 rounded-xl text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-xl hover:shadow-2xl hover:scale-105 transition-all font-semibold"
           >
             {BOOKING_BUTTON_LABELS.continueToServices}
           </button>

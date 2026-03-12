@@ -22,7 +22,7 @@ export function Pagination({
   itemLabel = "items",
 }: PaginationProps) {
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 justify-between items-center">
       {totalItems > 0 && (
         <div className="text-center text-sm text-slate-500 pt-2">
           Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
@@ -32,7 +32,7 @@ export function Pagination({
       )}
 
       {totalPages > 1 && (
-        <div className="flex justify-center items-center space-x-2 pt-2">
+        <div className="flex flex-wrap justify-center items-center space-x-2 pt-2">
           <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1 || loading}

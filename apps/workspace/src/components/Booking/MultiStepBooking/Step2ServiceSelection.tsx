@@ -28,7 +28,7 @@ export function Step2ServiceSelection({
       {loadingEventTypes ? (
         <div className="text-center py-16">
           <div className="inline-flex items-center gap-3 text-gray-500">
-            <div className="w-6 h-6 border-[3px] border-purple-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-[3px] border-indigo-600 border-t-transparent rounded-full animate-spin" />
             <span>{BOOKING_LOADING_MESSAGES.eventTypes}</span>
           </div>
         </div>
@@ -53,18 +53,18 @@ export function Step2ServiceSelection({
                 onClick={() => onSelectType(t)}
                 className={`group relative w-full text-left p-4 sm:p-5 lg:p-6 rounded-xl sm:rounded-2xl border-2 flex items-center gap-3 sm:gap-4 lg:gap-5 transition-all duration-300 overflow-hidden ${
                   isSelected
-                    ? 'border-purple-400 bg-gradient-to-br from-white to-purple-50/30 shadow-2xl scale-[1.02]'
-                    : 'border-gray-200 hover:border-purple-400 bg-white hover:bg-gradient-to-br hover:from-white hover:to-purple-50/30 hover:shadow-2xl hover:scale-[1.02]'
+                    ? 'border-indigo-400 bg-gradient-to-br from-white to-indigo-50/30 shadow-2xl scale-[1.02]'
+                    : 'border-gray-200 hover:border-indigo-400 bg-white hover:bg-gradient-to-br hover:from-white hover:to-indigo-50/30 hover:shadow-2xl hover:scale-[1.02]'
                 }`}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div
-                  className={`absolute inset-0 bg-gradient-to-r from-purple-600/0 via-purple-600/5 to-purple-600/0 transition-opacity duration-500 ${
+                  className={`absolute inset-0 bg-gradient-to-r from-indigo-600/0 via-indigo-600/5 to-indigo-600/0 transition-opacity duration-500 ${
                     isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                   }`}
                 />
                 <div
-                  className={`relative bg-purple-600 z-10 w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center text-white flex-shrink-0 transition-all duration-300 shadow-lg ${
+                  className={`relative bg-indigo-600 z-10 w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center text-white flex-shrink-0 transition-all duration-300 shadow-lg ${
                     isSelected ? 'scale-110 rotate-3' : 'group-hover:scale-110 group-hover:rotate-3'
                   }`}
                 >
@@ -73,7 +73,7 @@ export function Step2ServiceSelection({
                 <div className="flex-1 relative z-10 min-w-0">
                   <div
                     className={`font-bold text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 transition-colors truncate ${
-                      isSelected ? 'text-purple-700' : 'text-gray-900 group-hover:text-purple-700'
+                      isSelected ? 'text-indigo-700' : 'text-gray-900 group-hover:text-indigo-700'
                     }`}
                   >
                     {t.title}
@@ -93,7 +93,7 @@ export function Step2ServiceSelection({
                   </span>
                 </div>
                 <div className={`relative z-10 transition-opacity hidden sm:block ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>

@@ -93,9 +93,16 @@ export async function POST(req: Request) {
     const firstName = name.split(" ")[0] || name;
     const fullName = name;
 
-    // Prepare template parameters - ensure all values are strings and not empty
-    const templateParams = [
+    // User and admin templates do not share the same placeholder count.
+    const userTemplateParams = [
       firstName || "N/A",
+      fullName || "N/A",
+      email || "Not provided",
+      phone || "N/A",
+      message || "No message"
+    ];
+
+    const adminTemplateParams = [
       fullName || "N/A",
       email || "Not provided",
       phone || "N/A",
@@ -107,7 +114,7 @@ export async function POST(req: Request) {
     const userTemplateComponents: WhatsAppTemplateComponent[] = [
       {
         type: "body",
-        parameters: templateParams.map(param => ({
+        parameters: userTemplateParams.map(param => ({
           type: "text" as const,
           text: String(param).substring(0, 32768) // WhatsApp limit per parameter
         }))
@@ -118,8 +125,8 @@ export async function POST(req: Request) {
       phone,
       template: userTemplateName,
       language: languageCode,
-      parameters: templateParams,
-      parametersCount: templateParams.length
+      parameters: userTemplateParams,
+      parametersCount: userTemplateParams.length
     });
 
     try {
@@ -149,11 +156,11 @@ export async function POST(req: Request) {
     const adminNumbers = ["919463303891"];
 
     if (adminNumbers.length > 0) {
-      // Build template components for admin (same parameters as user)
+      // `booking_received` expects 4 body parameters, not the user's 5.
       const adminTemplateComponents: WhatsAppTemplateComponent[] = [
         {
           type: "body",
-          parameters: templateParams.map(param => ({
+          parameters: adminTemplateParams.map(param => ({
             type: "text" as const,
             text: String(param).substring(0, 32768) // WhatsApp limit per parameter
           }))
@@ -164,8 +171,8 @@ export async function POST(req: Request) {
         adminCount: adminNumbers.length,
         template: adminTemplateName,
         language: languageCode,
-        parameters: templateParams,
-        parametersCount: templateParams.length
+        parameters: adminTemplateParams,
+        parametersCount: adminTemplateParams.length
       });
 
       try {
@@ -225,7 +232,8 @@ export async function POST(req: Request) {
         userTemplate: userTemplateName,
         adminTemplate: adminTemplateName,
         language: languageCode,
-        parametersCount: templateParams.length
+        userParametersCount: userTemplateParams.length,
+        adminParametersCount: adminTemplateParams.length
       },
       ...(emailError && { emailError }),
       ...(userWhatsappError && { userWhatsappError }),
@@ -249,7 +257,7 @@ export async function POST(req: Request) {
       errorMessage = "WhatsApp API authentication failed. Please check your credentials.";
       statusCode = 401;
     } else if (errorMessage.includes("template") || errorMessage.includes("parameter")) {
-      errorMessage = `Template error: ${errorMessage}. Please verify: 1) Template name is correct, 2) Template is approved in Meta Business Manager, 3) Parameter count matches template (expected 5 parameters), 4) Language code is correct.`;
+      errorMessage = `Template error: ${errorMessage}. Please verify: 1) Template name is correct, 2) Template is approved in Meta Business Manager, 3) Parameter count matches each template, 4) Language code is correct.`;
       statusCode = 400;
     }
 

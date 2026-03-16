@@ -8,7 +8,7 @@ interface ProgressIndicatorProps {
 
 export function ProgressIndicator({ step }: ProgressIndicatorProps) {
   return (
-    <div className="steps flex items-center justify-center gap-2 sm:gap-3 relative flex-wrap">
+    <div className="steps flex items-center justify-center gap-2 sm:gap-3 relative flex-wrap mb-6">
       {[1, 2, 3, 4, 5].map((s, index) => (
         <React.Fragment key={s}>
           <div className="relative">

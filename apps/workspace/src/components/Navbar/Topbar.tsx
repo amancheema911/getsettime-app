@@ -31,23 +31,23 @@ export default function Topbar({ toggleSidebar, isSidebarOpen }: TopbarProps) {
   
   // Close dropdowns when clicking outside
   const handleClickOutside = (e: MouseEvent) => {
-    // Check if the click is outside the dropdown elements
+    const target = e.target as Node;
+
     const notificationButton = document.getElementById('notification-button');
     const notificationDropdown = document.getElementById('notification-dropdown');
     const profileButton = document.getElementById('profile-button');
     const profileDropdown = document.getElementById('profile-dropdown');
-    
-    // If the click is outside both buttons and dropdowns, close them
-    if (
-      notificationButton && 
-      notificationDropdown && 
-      profileButton && 
-      profileDropdown && 
-      !notificationButton.contains(e.target as Node) && 
-      !notificationDropdown.contains(e.target as Node) &&
-      !profileButton.contains(e.target as Node) &&
-      !profileDropdown.contains(e.target as Node)
-    ) {
+
+    const isClickInsideNotification =
+      (notificationButton && notificationButton.contains(target)) ||
+      (notificationDropdown && notificationDropdown.contains(target));
+
+    const isClickInsideProfile =
+      (profileButton && profileButton.contains(target)) ||
+      (profileDropdown && profileDropdown.contains(target));
+
+    // If the click is outside both areas, close both dropdowns
+    if (!isClickInsideNotification && !isClickInsideProfile) {
       setIsProfileMenuOpen(false);
       setIsNotificationOpen(false);
     }

@@ -59,6 +59,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+  
   const [isDepartmentsOpen, setIsDepartmentsOpen] = useState(false);
   const pathname = usePathname();
   const { user } = useAuth();

@@ -24,23 +24,23 @@ export default function Topbar({ toggleSidebar, isSidebarOpen }: TopbarProps) {
   
   // Close dropdowns when clicking outside
   const handleClickOutside = (e: MouseEvent) => {
-    // Check if the click is outside the dropdown elements
+    const target = e.target as Node;
+
     const notificationButton = document.getElementById('notification-button');
     const notificationDropdown = document.getElementById('notification-dropdown');
     const profileButton = document.getElementById('profile-button');
     const profileDropdown = document.getElementById('profile-dropdown');
-    
-    // If the click is outside both buttons and dropdowns, close them
-    if (
-      notificationButton && 
-      notificationDropdown && 
-      profileButton && 
-      profileDropdown && 
-      !notificationButton.contains(e.target as Node) && 
-      !notificationDropdown.contains(e.target as Node) &&
-      !profileButton.contains(e.target as Node) &&
-      !profileDropdown.contains(e.target as Node)
-    ) {
+
+    const isClickInsideNotification =
+      (notificationButton && notificationButton.contains(target)) ||
+      (notificationDropdown && notificationDropdown.contains(target));
+
+    const isClickInsideProfile =
+      (profileButton && profileButton.contains(target)) ||
+      (profileDropdown && profileDropdown.contains(target));
+
+    // If the click is outside both areas, close both dropdowns
+    if (!isClickInsideNotification && !isClickInsideProfile) {
       setIsProfileMenuOpen(false);
       setIsNotificationOpen(false);
     }
@@ -95,7 +95,7 @@ export default function Topbar({ toggleSidebar, isSidebarOpen }: TopbarProps) {
         {/* Right section with user profile */}
         <div className="flex items-center space-x-4">
           <div className="relative">
-            <button id="notification-button" onClick={(e) => { e.stopPropagation(); setIsNotificationOpen(!isNotificationOpen); setIsProfileMenuOpen(false);}} className="p-2 rounded-full text-gray-500 cursor-pointer hover:bg-gray-100 relative" aria-label="Notifications" aria-expanded={isNotificationOpen} aria-haspopup="true">
+            <button id="notification-button" onClick={(e) => { e.stopPropagation(); setIsNotificationOpen(!isNotificationOpen); setIsProfileMenuOpen(false);}} className="p-2 rounded-full bg-gray-100 text-gray-500 cursor-pointer hover:bg-gray-100 relative" aria-label="Notifications" aria-expanded={isNotificationOpen} aria-haspopup="true">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
               </svg>

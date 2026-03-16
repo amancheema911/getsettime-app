@@ -446,6 +446,9 @@ const WorkspacesPage: React.FC = () => {
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr className="border border-slate-200">
                     <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
+                      Logo
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
                       Name
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-bold text-slate-700 tracking-wider">
@@ -465,9 +468,9 @@ const WorkspacesPage: React.FC = () => {
                 <tbody className="divide-y divide-slate-200">
                   {paginatedWorkspaces.map((workspace) => (
                     <tr key={workspace.id} className="bg-white border border-slate-200 hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Name">
-                        <div className="item-align-end flex items-center gap-3">
-                          {workspace.logo_url ? (
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Logo">
+                       <div className="item-align-end flex items-center gap-3">
+                        {workspace.logo_url ? (
                             <img
                               src={workspace.logo_url}
                               alt={workspace.name}
@@ -483,6 +486,10 @@ const WorkspacesPage: React.FC = () => {
                               </svg>
                             </div>
                           )}
+                       </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle text-sm text-slate-700" data-label="Name">
+                        <div className="item-align-end flex items-center gap-3">
                           <span className="font-medium text-slate-900">{workspace.name}</span>
                         </div>
                       </td>
@@ -629,7 +636,7 @@ const WorkspacesPage: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       Primary Color

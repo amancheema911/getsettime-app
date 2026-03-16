@@ -208,40 +208,36 @@ const ProfessionsPage: React.FC = () => {
       )}
 
       {/* Filters Section */}
-      <section className="bg-white rounded-xl shadow-sm border border-slate-100/50 p-6">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Filters</h2>
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-              >
-                Clear Filters
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Search (Name)
-              </label>
+      <section className="bg-white rounded-xl shadow-sm border border-slate-100/50 px-3 py-3 sm:px-4 sm:py-3">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          {/* Left side: filter controls */}
+          <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 md:gap-3">
+            <div className="w-full sm:flex-1 sm:min-w-[200px]">
               <input
                 type="text"
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Search by name..."
               />
             </div>
           </div>
 
-          {hasActiveFilters && (
-            <div className="text-sm text-slate-600 pt-2 border-t border-slate-200">
-              Showing {filteredProfessions.length} of {professions.length} professions
-            </div>
-          )}
+          {/* Right side: reset + count */}
+          <div className="flex items-center justify-between gap-3 md:justify-end mt-1 md:mt-0">
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-[11px] sm:text-xs font-medium text-slate-400 hover:text-slate-600 whitespace-nowrap"
+              >
+                Reset Filters
+              </button>
+            )}
+            <span className="hidden sm:inline-block text-[11px] sm:text-xs text-slate-400 whitespace-nowrap">
+              {filteredProfessions.length} of {professions.length}
+            </span>
+          </div>
         </div>
       </section>
 

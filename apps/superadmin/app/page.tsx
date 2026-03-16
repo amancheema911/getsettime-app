@@ -204,9 +204,9 @@ const Dashboard: React.FC = () => {
             ) : (
               recentUsers.map((user) => (
                 <div key={user.id} className="p-4 hover:bg-slate-50 transition">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                  <div className="flex items-center flex-wrap gap-2 justify-between">
+                    <div className="relative">
+                      <div className="flex items-center flex-wrap gap-2">
                         <p className="text-sm font-medium text-slate-900 truncate">
                           {user.name || user.email}
                         </p>
@@ -227,7 +227,7 @@ const Dashboard: React.FC = () => {
                         </p>
                       )}
                     </div>
-                    <div className="text-xs text-slate-400 ml-4">
+                    <div className="text-xs text-slate-400">
                       {new Date(user.created_at).toLocaleDateString()}
                     </div>
                   </div>
@@ -255,8 +255,8 @@ const Dashboard: React.FC = () => {
             ) : (
               recentWorkspaces.map((workspace) => (
                 <div key={workspace.id} className="p-4 hover:bg-slate-50 transition">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex items-center flex-wrap gap-2 justify-between">
+                    <div className="flex items-center flex-wrap gap-3">
                       {workspace.logo_url ? (
                         <img
                           src={workspace.logo_url}
@@ -273,7 +273,7 @@ const Dashboard: React.FC = () => {
                           </svg>
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
+                      <div className="relative">
                         <p className="text-sm font-medium text-slate-900 truncate">
                           {workspace.name}
                         </p>
@@ -284,7 +284,7 @@ const Dashboard: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="text-xs text-slate-400 ml-4">
+                    <div className="text-xs text-slate-400">
                       {new Date(workspace.created_at).toLocaleDateString()}
                     </div>
                   </div>

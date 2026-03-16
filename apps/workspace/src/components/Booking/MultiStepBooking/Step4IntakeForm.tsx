@@ -70,6 +70,7 @@ export function Step4IntakeForm({
   onConfirm,
 }: Step4IntakeFormProps) {
   const [attemptedConfirm, setAttemptedConfirm] = useState(false);
+  const [sendWhatsapp, setSendWhatsapp] = useState(false);
   const showFieldError = (key: string) => attemptedConfirm && Boolean(intakeValidation[key]);
   const baseInputClass =
     'w-full px-4 py-4 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-indigo-500 transition-all bg-white hover:border-gray-300';
@@ -283,6 +284,21 @@ export function Step4IntakeForm({
             </div>
           </div>
         )}
+
+        <div className="group">
+          <label className="inline-flex items-center gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={sendWhatsapp}
+              onChange={(e) => setSendWhatsapp(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm text-gray-700">
+              Send confirmation and reminders via WhatsApp
+            </span>
+          </label>
+        </div>
+        
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 lg:mt-10 pt-6 sm:pt-8 border-t border-gray-200">

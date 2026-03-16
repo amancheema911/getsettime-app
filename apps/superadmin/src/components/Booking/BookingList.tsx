@@ -208,148 +208,122 @@ const BookingList = ({ workspaces }: BookingListProps) => {
       </header>
 
       {/* Search and Filters */}
-      <div className="flex flex-col gap-4">
-        {/* First Row: Search and Date */}
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Search Filter */}
-          <div className="w-full md:w-1/2">
-            <label htmlFor="search-filter" className="block text-sm font-medium text-slate-700 mb-2">
-              Search
-            </label>
-            <input
-              id="search-filter"
-              type="text"
-              placeholder="Search by name, email, or workspace..."
-              value={filter}
-              onChange={handleFilterChange}
-              className="w-full px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              aria-label="Filter bookings"
-            />
-          </div>
-
-          {/* Date Filter */}
-          <div className="w-full md:w-1/2">
-            <label htmlFor="date-filter" className="block text-sm font-medium text-slate-700 mb-2">
-              Filter by Date
-            </label>
-            <div className="relative">
-              {/* Calendar Icon */}
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              
+      <div className="bg-white shadow-sm border border-slate-100/50 px-3 py-3 sm:px-4 sm:py-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          {/* Left side: main filters */}
+          <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 lg:gap-3">
+            {/* Search Filter */}
+            <div className="w-full sm:flex-1 sm:min-w-[220px]">
               <input
-                id="date-filter"
-                type="date"
-                value={dateFilter}
-                onChange={handleDateFilterChange}
-                className="w-full pl-10 pr-10 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                aria-label="Filter by date"
+                id="search-filter"
+                type="text"
+                placeholder="Search by name, email, or workspace..."
+                value={filter}
+                onChange={handleFilterChange}
+                className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                aria-label="Filter bookings"
               />
-              
-              {/* Clear Button */}
-              {dateFilter && (
-                <button
-                  onClick={handleClearDateFilter}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                  aria-label="Clear date filter"
-                  title="Clear date filter"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
+            </div>
+
+            {/* Date Filter */}
+            <div className="w-full sm:w-auto sm:min-w-[160px]">
+              <div className="relative">
+                <input
+                  id="date-filter"
+                  type="date"
+                  value={dateFilter}
+                  onChange={handleDateFilterChange}
+                  className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  aria-label="Filter by date"
+                />
+                {dateFilter && (
+                  <button
+                    onClick={handleClearDateFilter}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    aria-label="Clear date filter"
+                    title="Clear date filter"
+                    type="button"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Status Filter */}
+            <div className="w-full sm:w-auto sm:min-w-[150px]">
+              <select
+                id="status-filter"
+                value={statusFilter}
+                onChange={handleStatusFilterChange}
+                className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                aria-label="Filter by status"
+              >
+                <option value="">All Status</option>
+                {BOOKING_STATUSES.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Event Type Filter */}
+            <div className="w-full sm:w-auto sm:min-w-[170px]">
+              <select
+                id="event-type-filter"
+                value={eventTypeFilter}
+                onChange={handleEventTypeFilterChange}
+                className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                aria-label="Filter by event type"
+              >
+                <option value="">All Event Types</option>
+                {eventTypes.map((eventType) => (
+                  <option key={eventType.id} value={eventType.id}>
+                    {eventType.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Workspace Filter */}
+            <div className="w-full sm:w-auto sm:min-w-[170px]">
+              <select
+                id="workspace-filter"
+                value={workspaceFilter}
+                onChange={handleWorkspaceFilterChange}
+                className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                aria-label="Filter by workspace"
+              >
+                <option value="">All Workspaces</option>
+                {workspaces.map((workspace) => (
+                  <option key={workspace.id} value={workspace.id}>
+                    {workspace.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sort Filter */}
+            <div className="w-full sm:w-auto sm:min-w-[150px]">
+              <select
+                id="sort-filter"
+                value={sortFilter}
+                onChange={handleSortFilterChange}
+                className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                aria-label="Sort bookings"
+              >
+                {BOOKING_SORT_OPTIONS.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
-        </div>
 
-        {/* Second Row: Status, Event Type, Workspace, Sort */}
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Status Filter */}
-          <div className="w-full md:w-1/4">
-            <label htmlFor="status-filter" className="block text-sm font-medium text-slate-700 mb-2">
-              Filter by Status
-            </label>
-            <select
-              id="status-filter"
-              value={statusFilter}
-              onChange={handleStatusFilterChange}
-              className="w-full px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              aria-label="Filter by status"
-            >
-              <option value="">All Statuses</option>
-              {BOOKING_STATUSES.map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Event Type Filter */}
-          <div className="w-full md:w-1/4">
-            <label htmlFor="event-type-filter" className="block text-sm font-medium text-slate-700 mb-2">
-              Filter by Event Type
-            </label>
-            <select
-              id="event-type-filter"
-              value={eventTypeFilter}
-              onChange={handleEventTypeFilterChange}
-              className="w-full px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              aria-label="Filter by event type"
-            >
-              <option value="">All Event Types</option>
-              {eventTypes.map((eventType) => (
-                <option key={eventType.id} value={eventType.id}>
-                  {eventType.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Workspace Filter */}
-          <div className="w-full md:w-1/4">
-            <label htmlFor="workspace-filter" className="block text-sm font-medium text-slate-700 mb-2">
-              Filter by Workspace
-            </label>
-            <select
-              id="workspace-filter"
-              value={workspaceFilter}
-              onChange={handleWorkspaceFilterChange}
-              className="w-full px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              aria-label="Filter by workspace"
-            >
-              <option value="">All Workspaces</option>
-              {workspaces.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
-                  {workspace.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Sort Filter */}
-          <div className="w-full md:w-1/4">
-            <label htmlFor="sort-filter" className="block text-sm font-medium text-slate-700 mb-2">
-              Sort by
-            </label>
-            <select
-              id="sort-filter"
-              value={sortFilter}
-              onChange={handleSortFilterChange}
-              className="w-full px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              aria-label="Sort bookings"
-            >
-              {BOOKING_SORT_OPTIONS.map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
       </div>
 
@@ -434,7 +408,7 @@ const BookingList = ({ workspaces }: BookingListProps) => {
           <div className="text-sm text-slate-600">
             Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, pagination.total)} of {pagination.total} bookings
           </div>
-          <div className="flex justify-center space-x-2">
+          <div className="flex justify-center flex-wrap gap-2">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1 || loading}

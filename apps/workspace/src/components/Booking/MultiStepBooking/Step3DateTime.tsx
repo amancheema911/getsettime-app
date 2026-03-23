@@ -127,7 +127,7 @@ export function Step3DateTime({
         <p className="text-xs sm:text-sm text-gray-500">{BOOKING_STEP_TITLES.step3Subtitle}</p>
       </div>
 
-      <div>
+      <div className="relative">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center flex-shrink-0">
@@ -139,7 +139,7 @@ export function Step3DateTime({
           </div>
           <button
             onClick={onToggleCalendar}
-            className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+            className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 cursor-pointer"
           >
             {showCalendar ? BOOKING_BUTTON_LABELS.hideCalendar : BOOKING_BUTTON_LABELS.showCalendar}
             <svg className={`w-4 h-4 transition-transform ${showCalendar ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,25 +149,25 @@ export function Step3DateTime({
         </div>
 
         {showCalendar ? (
-          <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-gray-200 p-4 sm:p-6 mb-4 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <button onClick={() => onNavigateMonth('prev')} className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors">
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="absolute right-0 top-full mt-2 w-full sm:w-auto min-w-[280px] grid rounded-2xl overflow-hidden border text-sm z-50 shadow-lg border-slate-200 bg-white text-slate-700">
+            <div className="bg-indigo-600 text-white flex items-center justify-between px-1 py-1">
+              <button onClick={() => onNavigateMonth('prev')} className="w-8 h-8 rounded-lg cursor-pointer flex items-center justify-center transition-colors">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <h3 className="text-base sm:text-lg font-bold text-gray-900">
+              <h3 className="text-base font-medium text-white">
                 {currentMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
               </h3>
-              <button onClick={() => onNavigateMonth('next')} className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors">
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button onClick={() => onNavigateMonth('next')} className="w-8 h-8 rounded-lg cursor-pointer flex items-center justify-center transition-colors">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
-            <div className="grid grid-cols-7 gap-1 sm:gap-2">
+            <div className="grid grid-cols-7 p-2 gap-1 sm:gap-2">
               {DAY_NAMES.map((day) => (
-                <div key={day} className="text-center text-xs sm:text-sm font-bold text-gray-500 py-2">{day}</div>
+                <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-2">{day}</div>
               ))}
               {getCalendarDays(currentMonth).map((date, index) => {
                 const isCurrentMonth = date.getMonth() === currentMonth.getMonth();

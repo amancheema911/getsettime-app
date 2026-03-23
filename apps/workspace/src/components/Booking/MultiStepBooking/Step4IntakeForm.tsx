@@ -295,14 +295,17 @@ export function Step4IntakeForm({
             <input
               type="checkbox"
               checked={sendWhatsapp}
-              onChange={(e) => onSendWhatsappChange(e.target.checked)}
+              onChange={(e) => {
+                onSendWhatsappChange(e.target.checked);
+                if (e.target.checked) setShowTermsModal(true);
+              }}
               className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
             />
             <span className="text-sm text-gray-700">I agree to receive appointment and reminder via WhatsApp.</span>
           </label>
         </div>
 
-        <div className='group'>
+        {/* <div className='group'>
           <label className="inline-flex items-center gap-3 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -318,7 +321,7 @@ export function Step4IntakeForm({
             />
             <span className="text-sm text-gray-700">I agree to the terms and conditions.</span>
           </label>
-        </div>
+        </div> */}
         
       </div>
 

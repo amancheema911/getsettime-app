@@ -4,9 +4,9 @@ import { useAuth } from "../../src/providers/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function ProfileCreative({ }) {
-  const PROFILE_IMAGE_STORAGE_KEY = "workspace_profile_image";
-  const PROFILE_IMAGE_EVENT = "workspace-profile-image-updated";
-  const { user, loading } = useAuth(); 
+  const PROFILE_IMAGE_STORAGE_KEY = "superadmin_profile_image";
+  const PROFILE_IMAGE_EVENT = "profile-image-updated";
+  const { user, loading } = useAuth();
   const [showPublic, setShowPublic] = useState(true);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
@@ -27,7 +27,7 @@ export default function ProfileCreative({ }) {
     if (!user) return;
 
     const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://admin.getsettime.com";
     const usernameFromEmail = user.email?.split("@")[0] || "";
     const profileSlug =
       (metadata.username as string) ||
@@ -153,7 +153,7 @@ export default function ProfileCreative({ }) {
   const handleCancel = () => {
     if (!user) return;
     const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.getsettime.com";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://admin.getsettime.com";
     const usernameFromEmail = user.email?.split("@")[0] || "";
     const profileSlug =
       (metadata.username as string) ||
@@ -215,7 +215,7 @@ export default function ProfileCreative({ }) {
                 <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
                     <div className="text-center">
                     <div className="relative inline-block mb-4">
-                        <div className={`w-32 h-32 rounded-full ${ selectedImagePreview || profileImage ? "bg-gray-100" : "bg-gradient-to-br  from-blue-500 to-purple-600" } grid place-items-center text-4xl font-bold text-white shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer overflow-hidden`} onClick={() => fileInputRef.current?.click()}>
+                        <div className={`w-32 h-32 rounded-2xl ${ selectedImagePreview || profileImage ? "bg-gray-100" : "bg-gradient-to-br  from-blue-500 to-purple-600" } grid place-items-center text-4xl font-bold text-white shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer overflow-hidden`} onClick={() => fileInputRef.current?.click()}>
                         {selectedImagePreview || profileImage ? (
                             <img src={selectedImagePreview || profileImage || ""} alt="Profile" className="w-full h-full object-cover"/>
                         ) : (
@@ -230,12 +230,12 @@ export default function ProfileCreative({ }) {
                             </svg>
                         </div>
                         )}
-                        {/* <div className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition cursor-pointer">
+                        <div className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition cursor-pointer">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
                         </svg>
-                        </div> */}
+                        </div>
                     </div>
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden"/>
                     <button onClick={() => fileInputRef.current?.click()} className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-blue-500 hover:text-blue-600 transition  font-medium">
@@ -251,27 +251,26 @@ export default function ProfileCreative({ }) {
                 </div>
 
                 {/* Profile Preview Card */}
-                <div className="bg-gradient-to-br from-indigo-600 to-emerald-300 rounded-2xl shadow-xl p-6 text-white">
+                <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-xl p-6 text-white">
                     <h3 className="font-semibold mb-4 text-lg">Profile Preview</h3>
                     <div className="space-y-3">
-                        <div>
-                            <p className="text-xs opacity-80 mb-1">Name</p>
-                            <p className="font-medium">{form.name || "Your Name"}</p>
-                        </div>
-                        <div>   
-                            <p className="text-xs opacity-80 mb-1">Email</p>
-                            <p className="font-medium">{form.email || "Your Email"}</p>
-                        </div>
-                        <div>   
-                            <p className="text-xs opacity-80 mb-1">Phone</p>
-                            <p className="font-medium">{form.phone || "Your Phone"}</p>
-                        </div>
-                        <div>   
-                            <p className="text-xs opacity-80 mb-1">Bio</p>
-                            <p className="font-medium">{form.bio || "Your Bio"}</p>
+                    <div>
+                        <p className="text-xs opacity-80 mb-1">Name</p>
+                        <p className="font-medium">{form.name || "Your Name"}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs opacity-80 mb-1">Profile Link</p>
+                        <p className="font-medium text-sm break-all">{form.link || "your-link"}</p>
+                    </div>
+                    <div className="pt-3 border-t border-white/20">
+                        <div className="flex items-center justify-between">
+                        <span className="text-sm">Public Profile</span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${ showPublic ? "bg-emerald-500/30 text-emerald-100" : "bg-gray-500/30 text-gray-200"}`}>
+                            {showPublic ? "Visible" : "Hidden"}
+                        </span>
                         </div>
                     </div>
-
+                    </div>
                 </div>
             </div>
 
@@ -353,12 +352,57 @@ export default function ProfileCreative({ }) {
                     </div>
                 </div>
 
+                {/* Settings Card */}
+                <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">Settings</h2>
+                    <div className="space-y-5">
+
+                        {/* Profile Link Field */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Profile Link</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                                    </svg>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={form.link}
+                                    onChange={(e) => setForm({ ...form, link: e.target.value })}
+                                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                                    placeholder="https://getsettime.app/yourname"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Public Profile Toggle */}
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-100 rounded-lg">
+                                    <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p className="font-medium text-gray-800">Show profile publicly</p>
+                                    <p className="text-sm text-gray-500">Allow others to find and view your profile</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowPublic(!showPublic)} className={`relative w-14 h-7 flex items-center rounded-full p-1 transition duration-300 ${ showPublic ? "bg-gradient-to-r from-emerald-500 to-emerald-600" : "bg-gray-300"}`}>
+                                <div className={`bg-white w-5 h-5 rounded-full shadow-lg transform transition duration-300 ${ showPublic ? "translate-x-7" : "translate-x-0" }`}/>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Action Buttons */}
-                <div className="flex justify-end gap-4">
+                <div className="flex gap-4">
                     <button
                       onClick={handleSaveChanges}
                       disabled={isSaving}
-                      className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {isSaving ? "Saving..." : "Save Changes"}
                     </button>
